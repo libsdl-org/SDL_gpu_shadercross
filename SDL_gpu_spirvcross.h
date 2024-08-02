@@ -58,6 +58,7 @@ void *SDL_CompileFromSPIRV(
     SDL_GpuShaderCreateInfo *createInfo;
     spvc_result result;
     spvc_backend backend;
+    unsigned shadermodel;
     SDL_GpuShaderFormat format;
     spvc_context context = NULL;
     spvc_parsed_ir ir = NULL;
@@ -148,7 +149,12 @@ void *SDL_CompileFromSPIRV(
     }
 
     if (backend == SPVC_BACKEND_HLSL) {
-        SDL_spvc_compiler_options_set_uint(options, SPVC_COMPILER_OPTION_HLSL_SHADER_MODEL, 50);
+        if (SDL_GpuGetBackend(device) == SDL_GPU_BACKEND_D3D11) {
+            shadermodel = 50;
+        } else {
+            shadermodel = 51;
+        }
+        SDL_spvc_compiler_options_set_uint(options, SPVC_COMPILER_OPTION_HLSL_SHADER_MODEL, shadermodel);
         SDL_spvc_compiler_options_set_uint(options, SPVC_COMPILER_OPTION_HLSL_NONWRITABLE_UAV_TEXTURE_AS_SRV, 1);
     }
 
