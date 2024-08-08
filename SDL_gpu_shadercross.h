@@ -59,7 +59,7 @@ typedef void ID3DInclude;      /* hack, unused */
 #ifdef __stdcall
 #undef __stdcall
 #endif
-#ifdef __x86_64__
+#if defined(__x86_64__) || defined(__arm64__)
 #define __stdcall __attribute__((ms_abi))
 #else
 #if (__GNUC__ > 4) || ((__GNUC__ == 4) && (__GNUC_MINOR__ >= 2)) || defined(__APPLE__)
@@ -152,7 +152,7 @@ void *SDL_CompileFromHLSL(
         SDL_LogError(
             SDL_LOG_CATEGORY_GPU,
             "HLSL compilation failed: %s",
-            errorBlob->lpVtbl->GetBufferPointer(errorBlob));
+            (char*)errorBlob->lpVtbl->GetBufferPointer(errorBlob));
         return NULL;
     }
 
