@@ -223,7 +223,7 @@ static pfn_spvc_compiler_compile SDL_spvc_compiler_compile = NULL;
 static pfn_spvc_context_get_last_error_string SDL_spvc_context_get_last_error_string = NULL;
 static pfn_spvc_compiler_get_execution_model SDL_spvc_compiler_get_execution_model = NULL;
 static pfn_spvc_compiler_get_cleansed_entry_point_name SDL_spvc_compiler_get_cleansed_entry_point_name = NULL;
-#else // SDL_GPU_SHADERCROSS_STATIC
+#else /* SDL_GPU_SHADERCROSS_STATIC */
 #define SDL_spvc_context_create spvc_context_create
 #define SDL_spvc_context_destroy spvc_context_destroy
 #define SDL_spvc_context_parse_spirv spvc_context_parse_spirv
@@ -235,7 +235,7 @@ static pfn_spvc_compiler_get_cleansed_entry_point_name SDL_spvc_compiler_get_cle
 #define SDL_spvc_context_get_last_error_string spvc_context_get_last_error_string
 #define SDL_spvc_compiler_get_execution_model spvc_compiler_get_execution_model
 #define SDL_spvc_compiler_get_cleansed_entry_point_name spvc_compiler_get_cleansed_entry_point_name
-#endif // SDL_GPU_SHADERCROSS_STATIC
+#endif /* SDL_GPU_SHADERCROSS_STATIC */
 
 #define SPVC_ERROR(func) \
     SDL_SetError(#func " failed: %s", SDL_spvc_context_get_last_error_string(context))
@@ -307,7 +307,7 @@ void *SDL_CompileFromSPIRV(
     CHECK_FUNC(spvc_compiler_get_execution_model)
     CHECK_FUNC(spvc_compiler_get_cleansed_entry_point_name)
 #undef CHECK_FUNC
-#endif // SDL_GPU_SHADERCROSS_STATIC
+#endif /* SDL_GPU_SHADERCROSS_STATIC */
 
     /* Create the SPIRV-Cross context */
     result = SDL_spvc_context_create(&context);
