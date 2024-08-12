@@ -190,13 +190,15 @@ void *SDL_CompileFromHLSL(
 #include "spirv_cross_c.h"
 
 #ifndef SDL_GPU_SHADERCROSS_STATIC
-#if defined(_WIN32)
-#define SPIRV_CROSS_DLL "spirv-cross-c-shared.dll"
-#elif defined(__APPLE__)
-#define SPIRV_CROSS_DLL "libspirv-cross-c-shared.0.dylib"
-#else
-#define SPIRV_CROSS_DLL "libspirv-cross-c-shared.so.0"
-#endif
+	#ifndef SDL_GPU_SPIRV_CROSS_DLL
+		#if defined(_WIN32)
+			#define SDL_GPU_SPIRV_CROSS_DLL "spirv-cross-c-shared.dll"
+		#elif defined(__APPLE__)
+			#define SDL_GPU_SPIRV_CROSS_DLL "libspirv-cross-c-shared.0.dylib"
+		#else
+		#define SDL_GPU_SPIRV_CROSS_DLL "libspirv-cross-c-shared.so.0"
+	#endif /* SDL_GPU_SPIRV_CROSS_DLL */
+#endif /* SDL_GPU_SHADERCROSS_STATIC */
 
 static void *spirvcross_dll = NULL;
 
@@ -282,7 +284,7 @@ void *SDL_CompileFromSPIRV(
     /* FIXME: spirv-cross could probably be loaded in a better spot */
 #ifndef SDL_GPU_SHADERCROSS_STATIC
     if (spirvcross_dll == NULL) {
-        spirvcross_dll = SDL_LoadObject(SPIRV_CROSS_DLL);
+        spirvcross_dll = SDL_LoadObject(SDL_GPU_SPIRV_CROSS_DLL);
         if (spirvcross_dll == NULL) {
             return NULL;
         }
