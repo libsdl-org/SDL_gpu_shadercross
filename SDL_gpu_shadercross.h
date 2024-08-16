@@ -159,7 +159,7 @@ void *SDL_CompileFromHLSL(
     if (shaderProfile[0] == 'c' && shaderProfile[1] == 's') {
         SDL_GpuComputePipelineCreateInfo newCreateInfo;
         newCreateInfo = *(SDL_GpuComputePipelineCreateInfo *)createInfo;
-        newCreateInfo.code = (const uint8_t*)blob->lpVtbl->GetBufferPointer(blob);
+        newCreateInfo.code = (const Uint8*)blob->lpVtbl->GetBufferPointer(blob);
         newCreateInfo.codeSize = blob->lpVtbl->GetBufferSize(blob);
         newCreateInfo.format = SDL_GPU_SHADERFORMAT_DXBC;
 
@@ -167,7 +167,7 @@ void *SDL_CompileFromHLSL(
     } else {
         SDL_GpuShaderCreateInfo newCreateInfo;
         newCreateInfo = *(SDL_GpuShaderCreateInfo *)createInfo;
-        newCreateInfo.code = (const uint8_t*)blob->lpVtbl->GetBufferPointer(blob);
+        newCreateInfo.code = (const Uint8*)blob->lpVtbl->GetBufferPointer(blob);
         newCreateInfo.codeSize = blob->lpVtbl->GetBufferSize(blob);
         newCreateInfo.format = SDL_GPU_SHADERFORMAT_DXBC;
 
@@ -196,7 +196,8 @@ void *SDL_CompileFromHLSL(
 		#elif defined(__APPLE__)
 			#define SDL_GPU_SPIRV_CROSS_DLL "libspirv-cross-c-shared.0.dylib"
 		#else
-		#define SDL_GPU_SPIRV_CROSS_DLL "libspirv-cross-c-shared.so.0"
+			#define SDL_GPU_SPIRV_CROSS_DLL "libspirv-cross-c-shared.so.0"
+		#endif
 	#endif /* SDL_GPU_SPIRV_CROSS_DLL */
 #endif /* SDL_GPU_SHADERCROSS_STATIC */
 
