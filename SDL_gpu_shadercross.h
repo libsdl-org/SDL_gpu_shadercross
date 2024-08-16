@@ -11,22 +11,38 @@
 #define SDL_GPU_SHADERCROSS_HLSL 1
 #endif /* SDL_GPU_SHADERCROSS_HLSL */
 
+extern SDL_GpuShaderFormat SDL_ShaderCross_GetShaderFormats(void);
+
 #if SDL_GPU_SHADERCROSS_SPIRVCROSS
-extern void *SDL_CompileFromSPIRV(SDL_GpuDevice *device,
-                                  void *createInfo,
-                                  SDL_bool isCompute);
+extern void *SDL_ShaderCross_CompileFromSPIRV(SDL_GpuDevice *device,
+                                              void *createInfo,
+                                              SDL_bool isCompute);
 #endif /* SDL_GPU_SHADERCROSS_SPIRVCROSS */
 
 #if SDL_GPU_SHADERCROSS_HLSL
-extern void *SDL_CompileFromHLSL(SDL_GpuDevice *device,
-                                 void *createInfo,
-                                 const char *hlslSource,
-                                 const char *shaderProfile);
+extern void *SDL_ShaderCross_CompileFromHLSL(SDL_GpuDevice *device,
+                                             void *createInfo,
+                                             const char *hlslSource,
+                                             const char *shaderProfile);
 #endif /* SDL_GPU_SHADERCROSS_HLSL */
 
 #endif /* SDL_GPU_SHADERCROSS_H */
 
 #ifdef SDL_GPU_SHADERCROSS_IMPLEMENTATION
+
+SDL_GpuShaderFormat SDL_ShaderCross_GetShaderFormats(void)
+{
+    return (0
+#if SDL_GPU_SHADERCROSS_SPIRVCROSS
+      | SDL_GPU_SHADERFORMAT_SPIRV
+      | SDL_GPU_SHADERFORMAT_MSL
+#endif
+#if SDL_GPU_SHADERCROSS_HLSL
+      | SDL_GPU_SHADERFORMAT_DXBC
+      /* TODO: | SDL_GPU_SHADERFORMAT_DXIL */
+#endif /* SDL_GPU_SHADERCROSS_HLSL */
+    );
+}
 
 #if SDL_GPU_SHADERCROSS_HLSL
 
@@ -109,7 +125,7 @@ typedef HRESULT(__stdcall *pfn_D3DCompile)(
 
 static pfn_D3DCompile SDL_D3DCompile = NULL;
 
-void *SDL_CompileFromHLSL(
+void *SDL_ShaderCross_CompileFromHLSL(
     SDL_GpuDevice *device,
     void *createInfo,
     const char *hlslSource,
@@ -246,7 +262,7 @@ static pfn_spvc_compiler_get_cleansed_entry_point_name SDL_spvc_compiler_get_cle
 #define SPVC_ERROR(func) \
     SDL_SetError(#func " failed: %s", SDL_spvc_context_get_last_error_string(context))
 
-void *SDL_CompileFromSPIRV(
+void *SDL_ShaderCross_CompileFromSPIRV(
     SDL_GpuDevice *device,
     void *originalCreateInfo,
     SDL_bool isCompute)
@@ -385,7 +401,7 @@ void *SDL_CompileFromSPIRV(
         newCreateInfo.entryPointName = cleansed_entrypoint;
 
         if (backend == SPVC_BACKEND_HLSL) {
-            compiledResult = SDL_CompileFromHLSL(
+            compiledResult = SDL_ShaderCross_CompileFromHLSL(
                 device,
                 &newCreateInfo,
                 translated_source,
@@ -408,7 +424,7 @@ void *SDL_CompileFromSPIRV(
             } else {
                 profile = (shadermodel == 50) ? "ps_5_0" : "ps_5_1";
             }
-            compiledResult = SDL_CompileFromHLSL(
+            compiledResult = SDL_ShaderCross_CompileFromHLSL(
                 device,
                 &newCreateInfo,
                 translated_source,
