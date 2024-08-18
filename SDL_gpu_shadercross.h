@@ -283,9 +283,9 @@ void *SDL_ShaderCross_CompileFromSPIRV(
     switch (SDL_GpuGetDriver(device)) {
     case SDL_GPU_DRIVER_VULKAN:
         if (isCompute) {
-            return SDL_GpuCreateComputePipeline(device, (SDL_GpuComputePipelineCreateInfo*) createInfo);
+            return SDL_GpuCreateComputePipeline(device, (SDL_GpuComputePipelineCreateInfo*) originalCreateInfo);
         } else {
-            return SDL_GpuCreateShader(device, (SDL_GpuShaderCreateInfo*) createInfo);
+            return SDL_GpuCreateShader(device, (SDL_GpuShaderCreateInfo*) originalCreateInfo);
         }
     case SDL_GPU_DRIVER_D3D11:
     case SDL_GPU_DRIVER_D3D12:
