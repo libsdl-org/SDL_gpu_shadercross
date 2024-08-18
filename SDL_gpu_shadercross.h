@@ -297,7 +297,7 @@ void *SDL_ShaderCross_CompileFromSPIRV(
         format = SDL_GPU_SHADERFORMAT_MSL;
         break;
     default:
-        SDL_SetError("SDL_CreateShaderFromSPIRV: Unexpected SDL_GpuBackend");
+        SDL_SetError("SDL_ShaderCross_CompileFromSPIRV: Unexpected SDL_GpuBackend");
         return NULL;
     }
 
