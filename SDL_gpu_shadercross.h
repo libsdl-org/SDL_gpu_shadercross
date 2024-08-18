@@ -280,13 +280,13 @@ void *SDL_ShaderCross_CompileFromSPIRV(
     const char *cleansed_entrypoint;
     void *compiledResult;
 
-    /* SDL_GpuShaderCreateInfo and SDL_GpuComputePipelineCreateInfo
-     * share the same struct layout for their first 3 members, which
-     * is all we need to transpile them!
-     */
-    createInfo = (SDL_GpuShaderCreateInfo *)originalCreateInfo;
-
     switch (SDL_GpuGetDriver(device)) {
+    case SDL_GPU_DRIVER_VULKAN:
+        if (isCompute) {
+            return SDL_GpuCreateComputePipeline(device, (SDL_GpuComputePipelineCreateInfo*) createInfo);
+        } else {
+            return SDL_GpuCreateShader(device, (SDL_GpuShaderCreateInfo*) createInfo);
+        }
     case SDL_GPU_DRIVER_D3D11:
     case SDL_GPU_DRIVER_D3D12:
         backend = SPVC_BACKEND_HLSL;
@@ -337,6 +337,12 @@ void *SDL_ShaderCross_CompileFromSPIRV(
         SDL_SetError("spvc_context_create failed: %X", result);
         return NULL;
     }
+
+    /* SDL_GpuShaderCreateInfo and SDL_GpuComputePipelineCreateInfo
+     * share the same struct layout for their first 3 members, which
+     * is all we need to transpile them!
+     */
+    createInfo = (SDL_GpuShaderCreateInfo *)originalCreateInfo;
 
     /* Parse the SPIR-V into IR */
     result = SDL_spvc_context_parse_spirv(context, (const SpvId *)createInfo->code, createInfo->codeSize / sizeof(SpvId), &ir);
