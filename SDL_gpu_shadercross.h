@@ -38,8 +38,9 @@ SDL_GpuShaderFormat SDL_ShaderCross_GetShaderFormats(void)
       | SDL_GPU_SHADERFORMAT_MSL
 #endif
 #if SDL_GPU_SHADERCROSS_HLSL
+      | SDL_GPU_SHADERFORMAT_SPIRV
       | SDL_GPU_SHADERFORMAT_DXBC
-      /* TODO: | SDL_GPU_SHADERFORMAT_DXIL */
+      | SDL_GPU_SHADERFORMAT_DXIL
 #endif /* SDL_GPU_SHADERCROSS_HLSL */
     );
 }
@@ -47,6 +48,7 @@ SDL_GpuShaderFormat SDL_ShaderCross_GetShaderFormats(void)
 #if SDL_GPU_SHADERCROSS_HLSL
 
 /* Win32 Type Definitions */
+
 typedef int HRESULT;
 typedef const void *LPCVOID;
 typedef size_t SIZE_T;
@@ -54,7 +56,412 @@ typedef const char *LPCSTR;
 typedef unsigned int UINT;
 typedef unsigned long ULONG;
 typedef void *LPVOID;
-typedef void *REFIID;          /* hack, unused */
+typedef void *REFIID;
+
+/* DXIL via DXC */
+
+/* dxcompiler Type Definitions */
+typedef int BOOL;
+typedef void *REFCLSID;
+typedef wchar_t *LPCWSTR;
+
+/* Dynamic Library / Linking */
+#ifdef DXCOMPILER_DLL
+#undef DXCOMPILER_DLL
+#endif
+#if defined(_WIN32)
+#define DXCOMPILER_DLL "dxcompiler.dll"
+#elif defined(__APPLE__)
+#define DXCOMPILER_DLL "libdxcompiler.dylib"
+#else
+#define DXCOMPILER_DLL "libdxcompiler.so"
+#endif
+
+/* Unlike vkd3d-utils, libdxcompiler.so does not use msabi */
+#if !defined(_WIN32)
+#define __stdcall
+#endif
+
+/* Compiler Interface, _technically_ unofficial but it's MS C++, come on */
+typedef enum DXC_OUT_KIND
+{
+    DXC_OUT_NONE = 0,
+    DXC_OUT_OBJECT = 1,
+    DXC_OUT_ERRORS = 2,
+    DXC_OUT_PDB = 3,
+    DXC_OUT_SHADER_HASH = 4,
+    DXC_OUT_DISASSEMBLY = 5,
+    DXC_OUT_HLSL = 6,
+    DXC_OUT_TEXT = 7,
+    DXC_OUT_REFLECTION = 8,
+    DXC_OUT_ROOT_SIGNATURE = 9,
+    DXC_OUT_EXTRA_OUTPUTS = 10,
+    DXC_OUT_REMARKS = 11,
+    DXC_OUT_TIME_REPORT = 12,
+    DXC_OUT_TIME_TRACE = 13,
+    DXC_OUT_LAST = DXC_OUT_TIME_TRACE,
+    DXC_OUT_NUM_ENUMS,
+    DXC_OUT_FORCE_DWORD = 0xFFFFFFFF
+} DXC_OUT_KIND;
+
+typedef struct DxcBuffer
+{
+    LPCVOID Ptr;
+    SIZE_T Size;
+    UINT Encoding;
+} DxcBuffer;
+
+static Uint8 IID_IDxcBlob[] = {
+    0x08, 0xFB, 0xA5, 0x8B,
+    0x95, 0x51,
+    0xE2, 0x40,
+    0xAC,
+    0x58,
+    0x0D,
+    0x98,
+    0x9C,
+    0x3A,
+    0x01,
+    0x02
+};
+typedef struct IDxcBlob IDxcBlob;
+typedef struct IDxcBlobVtbl
+{
+    HRESULT(__stdcall *QueryInterface)(IDxcBlob *This, REFIID riid, void **ppvObject);
+    ULONG(__stdcall *AddRef)(IDxcBlob *This);
+    ULONG(__stdcall *Release)(IDxcBlob *This);
+
+    LPVOID(__stdcall *GetBufferPointer)(IDxcBlob *This);
+    SIZE_T(__stdcall *GetBufferSize)(IDxcBlob *This);
+} IDxcBlobVtbl;
+struct IDxcBlob
+{
+    IDxcBlobVtbl *lpVtbl;
+};
+
+typedef struct IDxcBlobEncoding IDxcBlobEncoding;
+typedef struct IDxcBlobEncodingVtbl
+{
+    HRESULT(__stdcall *QueryInterface)(IDxcBlobEncoding *This, REFIID riid, void **ppvObject);
+    ULONG(__stdcall *AddRef)(IDxcBlobEncoding *This);
+    ULONG(__stdcall *Release)(IDxcBlobEncoding *This);
+
+    LPVOID(__stdcall *GetBufferPointer)(IDxcBlobEncoding *This);
+    SIZE_T(__stdcall *GetBufferSize)(IDxcBlobEncoding *This);
+
+    HRESULT(__stdcall *GetEncoding)(IDxcBlobEncoding *This, BOOL *pKnown, Uint32 *pCodePage);
+} IDxcBlobEncodingVtbl;
+struct IDxcBlobEncoding
+{
+    IDxcBlobEncodingVtbl *lpVtbl;
+};
+
+typedef struct IDxcBlobWide IDxcBlobWide;
+typedef struct IDxcBlobWideVtbl
+{
+    HRESULT(__stdcall *QueryInterface)(IDxcBlobWide *This, REFIID riid, void **ppvObject);
+    ULONG(__stdcall *AddRef)(IDxcBlobWide *This);
+    ULONG(__stdcall *Release)(IDxcBlobWide *This);
+
+    LPVOID(__stdcall *GetBufferPointer)(IDxcBlobWide *This);
+    SIZE_T(__stdcall *GetBufferSize)(IDxcBlobWide *This);
+
+    HRESULT(__stdcall *GetEncoding)(IDxcBlobWide *This, BOOL *pKnown, Uint32 *pCodePage);
+
+    LPCWSTR(__stdcall *GetStringPointer)(IDxcBlobWide *This);
+    SIZE_T(__stdcall *GetStringLength)(IDxcBlobWide *This);
+} IDxcBlobWideVtbl;
+struct IDxcBlobWide
+{
+    IDxcBlobWideVtbl *lpVtbl;
+};
+
+static Uint8 IID_IDxcBlobUtf8[] = {
+    0xC9, 0x36, 0xA6, 0x3D,
+    0x71, 0xBA,
+    0x24, 0x40,
+    0xA3,
+    0x01,
+    0x30,
+    0xCB,
+    0xF1,
+    0x25,
+    0x30,
+    0x5B
+};
+typedef struct IDxcBlobUtf8 IDxcBlobUtf8;
+typedef struct IDxcBlobUtf8Vtbl
+{
+    HRESULT(__stdcall *QueryInterface)(IDxcBlobUtf8 *This, REFIID riid, void **ppvObject);
+    ULONG(__stdcall *AddRef)(IDxcBlobUtf8 *This);
+    ULONG(__stdcall *Release)(IDxcBlobUtf8 *This);
+
+    LPVOID(__stdcall *GetBufferPointer)(IDxcBlobUtf8 *This);
+    SIZE_T(__stdcall *GetBufferSize)(IDxcBlobUtf8 *This);
+
+    HRESULT(__stdcall *GetEncoding)(IDxcBlobUtf8 *This, BOOL *pKnown, Uint32 *pCodePage);
+
+    LPCSTR(__stdcall *GetStringPointer)(IDxcBlobUtf8 *This);
+    SIZE_T(__stdcall *GetStringLength)(IDxcBlobUtf8 *This);
+} IDxcBlobUtf8Vtbl;
+struct IDxcBlobUtf8
+{
+    IDxcBlobUtf8Vtbl *lpVtbl;
+};
+
+static Uint8 IID_IDxcResult[] = {
+    0xDA, 0x6C, 0x34, 0x58,
+    0xE7, 0xDD,
+    0x97, 0x44,
+    0x94,
+    0x61,
+    0x6F,
+    0x87,
+    0xAF,
+    0x5E,
+    0x06,
+    0x59
+};
+typedef struct IDxcResult IDxcResult;
+typedef struct IDxcResultVtbl
+{
+    HRESULT(__stdcall *QueryInterface)(IDxcResult *This, REFIID riid, void **ppvObject);
+    ULONG(__stdcall *AddRef)(IDxcResult *This);
+    ULONG(__stdcall *Release)(IDxcResult *This);
+
+    HRESULT(__stdcall *GetStatus)(IDxcResult *This, HRESULT *pStatus);
+    HRESULT(__stdcall *GetResult)(IDxcResult *This, IDxcBlob **ppResult);
+    HRESULT(__stdcall *GetErrorBuffer)(IDxcResult *This, IDxcBlobEncoding **ppErrors);
+
+    BOOL(__stdcall *HasOutput)(IDxcResult *This, DXC_OUT_KIND dxcOutKind);
+    HRESULT(__stdcall *GetOutput)(
+        IDxcResult *This,
+        DXC_OUT_KIND dxcOutKind,
+        REFIID iid,
+        void **ppvObject,
+        IDxcBlobWide **ppOutputName
+    );
+    Uint32(__stdcall *GetNumOutputs)(IDxcResult *This);
+    DXC_OUT_KIND(__stdcall *GetOutputByIndex)(IDxcResult *This, Uint32 Index);
+    DXC_OUT_KIND(__stdcall *PrimaryOutput)(IDxcResult *This);
+} IDxcResultVtbl;
+struct IDxcResult
+{
+    IDxcResultVtbl *lpVtbl;
+};
+
+static struct
+{
+    Uint32 Data1;
+    Uint16 Data2;
+    Uint16 Data3;
+    Uint8 Data4[8];
+} CLSID_DxcCompiler = {
+    .Data1 = 0x73e22d93,
+    .Data2 = 0xe6ce,
+    .Data3 = 0x47f3,
+    .Data4 = { 0xb5, 0xbf, 0xf0, 0x66, 0x4f, 0x39, 0xc1, 0xb0 }
+};
+static Uint8 IID_IDxcCompiler3[] = {
+    0x87, 0x46, 0x8B, 0x22,
+    0x6A, 0x5A,
+    0x30, 0x47,
+    0x90,
+    0x0C,
+    0x97,
+    0x02,
+    0xB2,
+    0x20,
+    0x3F,
+    0x54
+};
+typedef struct IDxcCompiler3 IDxcCompiler3;
+typedef struct IDxcCompiler3Vtbl
+{
+    HRESULT(__stdcall *QueryInterface)(IDxcCompiler3 *This, REFIID riid, void **ppvObject);
+    ULONG(__stdcall *AddRef)(IDxcCompiler3 *This);
+    ULONG(__stdcall *Release)(IDxcCompiler3 *This);
+
+    HRESULT(__stdcall *Compile)(
+        IDxcCompiler3 *This,
+        const DxcBuffer *pSource,
+        LPCWSTR *pArguments,
+        Uint32 argCount,
+        void *pIncludeHandler, /* Technically IDxcIncludeHandler, but whatever... */
+        REFIID riid,
+        LPVOID *ppResult
+    );
+
+    HRESULT(__stdcall *Disassemble)(
+        IDxcCompiler3 *This,
+        const DxcBuffer *pObject,
+        REFIID riid,
+        LPVOID *ppResult
+    );
+} IDxcCompiler3Vtbl;
+struct IDxcCompiler3
+{
+    const IDxcCompiler3Vtbl *lpVtbl;
+};
+
+/* DXCompiler */
+static void *dxcompiler_dll = NULL;
+
+typedef HRESULT (__stdcall *DxcCreateInstanceProc)(
+    REFCLSID rclsid,
+    REFIID riid,
+    LPVOID *ppv);
+
+static DxcCreateInstanceProc SDL_DxcCreateInstance = NULL;
+static IDxcCompiler3 *SDL_DxcInstance = NULL;
+
+static void *SDL_ShaderCross_INTERNAL_CompileDXC(
+    SDL_GpuDevice *device,
+    void *createInfo,
+    const char *hlslSource,
+    const char *shaderProfile,
+    SDL_bool spirv)
+{
+    DxcBuffer source;
+    IDxcResult *dxcResult;
+    DXC_OUT_KIND blobOut;
+    IDxcBlob *blob;
+    IDxcBlobUtf8 *errors;
+    LPCWSTR args[] = {
+        L"-E",
+        L"main", /* FIXME */
+        NULL,
+        NULL,
+        NULL
+    };
+    Uint32 argCount = 2;
+    HRESULT ret;
+    void *result;
+
+    /* FIXME: dxcompiler could probably be loaded in a better spot */
+    if (dxcompiler_dll == NULL) {
+        dxcompiler_dll = SDL_LoadObject(DXCOMPILER_DLL);
+        if (dxcompiler_dll == NULL) {
+            return NULL;
+        }
+    }
+
+    if (SDL_DxcCreateInstance == NULL) {
+        SDL_DxcCreateInstance = (DxcCreateInstanceProc)SDL_LoadFunction(dxcompiler_dll, "DxcCreateInstance");
+        if (SDL_DxcCreateInstance == NULL) {
+            return NULL;
+        }
+    }
+
+    if (SDL_DxcInstance == NULL) {
+        SDL_DxcCreateInstance(&CLSID_DxcCompiler,
+                              IID_IDxcCompiler3,
+                              (void**) &SDL_DxcInstance);
+        if (SDL_DxcInstance == NULL) {
+            return NULL;
+        }
+    }
+
+    source.Ptr = hlslSource;
+    source.Size = SDL_strlen(hlslSource) + 1;
+    source.Encoding = 0; /* FIXME: The docs for this are a _bit_ scarce */
+
+    if (SDL_strcmp(shaderProfile, "ps_6_0") == 0) {
+        args[argCount++] = L"-T";
+        args[argCount++] = L"ps_6_0";
+    } else if (SDL_strcmp(shaderProfile, "vs_6_0") == 0) {
+        args[argCount++] = L"-T";
+        args[argCount++] = L"vs_6_0";
+    } else if (SDL_strcmp(shaderProfile, "cs_6_0") == 0) {
+        args[argCount++] = L"-T";
+        args[argCount++] = L"cs_6_0";
+    }
+
+    if (spirv) {
+        args[argCount++] = L"-spirv";
+    }
+
+    ret = SDL_DxcInstance->lpVtbl->Compile(
+        SDL_DxcInstance,
+        &source,
+        args,
+        argCount,
+        NULL,
+        IID_IDxcResult,
+        (void**) &dxcResult);
+
+    if (ret < 0) {
+        SDL_LogError(SDL_LOG_CATEGORY_GPU,
+                     "IDxcShaderCompiler3::Compile failed: %X",
+                     ret);
+        return NULL;
+    } else if (dxcResult == NULL) {
+        SDL_LogError(SDL_LOG_CATEGORY_GPU,
+                     "HLSL compilation failed with no IDxcResult");
+        return NULL;
+    }
+
+
+    blobOut = dxcResult->lpVtbl->PrimaryOutput(dxcResult);
+    if (blobOut == DXC_OUT_ERRORS) {
+        dxcResult->lpVtbl->GetOutput(dxcResult,
+                                     DXC_OUT_ERRORS,
+                                     IID_IDxcBlobUtf8,
+                                     (void**) &errors,
+                                     NULL);
+        SDL_LogError(SDL_LOG_CATEGORY_GPU,
+                     "HLSL compilation failed: %ls",
+                      errors->lpVtbl->GetStringPointer(errors));
+        dxcResult->lpVtbl->Release(dxcResult);
+        return NULL;
+    } else if (blobOut == DXC_OUT_OBJECT) {
+        dxcResult->lpVtbl->GetOutput(dxcResult,
+                                     DXC_OUT_OBJECT,
+                                     IID_IDxcBlob,
+                                     (void**) &blob,
+                                     NULL);
+        if (blob == NULL || blob->lpVtbl->GetBufferSize(blob) == 0) {
+            SDL_LogError(SDL_LOG_CATEGORY_GPU, "IDxcBlob fetch failed");
+            dxcResult->lpVtbl->Release(dxcResult);
+            return NULL;
+        }
+    } else {
+        SDL_LogError(SDL_LOG_CATEGORY_GPU,
+                     "Unexpeced DxcResult output: %d",
+                     blobOut);
+        dxcResult->lpVtbl->Release(dxcResult);
+        return NULL;
+    }
+
+    if (shaderProfile[0] == 'c' && shaderProfile[1] == 's') {
+        SDL_GpuComputePipelineCreateInfo newCreateInfo;
+        newCreateInfo = *(SDL_GpuComputePipelineCreateInfo *)createInfo;
+        newCreateInfo.code = (const Uint8*)blob->lpVtbl->GetBufferPointer(blob);
+        newCreateInfo.codeSize = blob->lpVtbl->GetBufferSize(blob);
+        newCreateInfo.format = spirv ?
+            SDL_GPU_SHADERFORMAT_SPIRV :
+            SDL_GPU_SHADERFORMAT_DXIL;
+
+        result = SDL_GpuCreateComputePipeline(device, &newCreateInfo);
+    } else {
+        SDL_GpuShaderCreateInfo newCreateInfo;
+        newCreateInfo = *(SDL_GpuShaderCreateInfo *)createInfo;
+        newCreateInfo.code = (const Uint8*)blob->lpVtbl->GetBufferPointer(blob);
+        newCreateInfo.codeSize = blob->lpVtbl->GetBufferSize(blob);
+        newCreateInfo.format = spirv ?
+            SDL_GPU_SHADERFORMAT_SPIRV :
+            SDL_GPU_SHADERFORMAT_DXIL;
+
+        result = SDL_GpuCreateShader(device, &newCreateInfo);
+    }
+    dxcResult->lpVtbl->Release(dxcResult);
+
+    return result;
+}
+
+/* DXBC via FXC */
+
+/* d3dcompiler Type Definitions */
 typedef void D3D_SHADER_MACRO; /* hack, unused */
 typedef void ID3DInclude;      /* hack, unused */
 
@@ -125,7 +532,7 @@ typedef HRESULT(__stdcall *pfn_D3DCompile)(
 
 static pfn_D3DCompile SDL_D3DCompile = NULL;
 
-void *SDL_ShaderCross_CompileFromHLSL(
+static void *SDL_ShaderCross_INTERNAL_CompileFXC(
     SDL_GpuDevice *device,
     void *createInfo,
     const char *hlslSource,
@@ -193,6 +600,24 @@ void *SDL_ShaderCross_CompileFromHLSL(
     blob->lpVtbl->Release(blob);
 
     return result;
+}
+
+extern void *SDL_ShaderCross_CompileFromHLSL(SDL_GpuDevice *device,
+                                             void *createInfo,
+                                             const char *hlslSource,
+                                             const char *shaderProfile)
+{
+    switch (SDL_GpuGetDriver(device)) {
+    case SDL_GPU_DRIVER_D3D11:
+        return SDL_ShaderCross_INTERNAL_CompileFXC(device, createInfo, hlslSource, shaderProfile);
+    case SDL_GPU_DRIVER_D3D12:
+        return SDL_ShaderCross_INTERNAL_CompileDXC(device, createInfo, hlslSource, shaderProfile, SDL_FALSE);
+    case SDL_GPU_DRIVER_VULKAN:
+        return SDL_ShaderCross_INTERNAL_CompileDXC(device, createInfo, hlslSource, shaderProfile, SDL_TRUE);
+    default:
+        SDL_SetError("SDL_ShaderCross_CompileFromHLSL: Unexpected SDL_GpuBackend");
+        return NULL;
+    }
 }
 
 #endif /* SDL_GPU_SHADERCROSS_HLSL */
@@ -288,9 +713,12 @@ void *SDL_ShaderCross_CompileFromSPIRV(
             return SDL_GpuCreateShader(device, (SDL_GpuShaderCreateInfo*) originalCreateInfo);
         }
     case SDL_GPU_DRIVER_D3D11:
-    case SDL_GPU_DRIVER_D3D12:
         backend = SPVC_BACKEND_HLSL;
         format = SDL_GPU_SHADERFORMAT_DXBC;
+        break;
+    case SDL_GPU_DRIVER_D3D12:
+        backend = SPVC_BACKEND_HLSL;
+        format = SDL_GPU_SHADERFORMAT_DXIL;
         break;
     case SDL_GPU_DRIVER_METAL:
         backend = SPVC_BACKEND_MSL;
@@ -372,7 +800,7 @@ void *SDL_ShaderCross_CompileFromSPIRV(
         if (SDL_GpuGetDriver(device) == SDL_GPU_DRIVER_D3D11) {
             shadermodel = 50;
         } else {
-            shadermodel = 51;
+            shadermodel = 60;
         }
         SDL_spvc_compiler_options_set_uint(options, SPVC_COMPILER_OPTION_HLSL_SHADER_MODEL, shadermodel);
         SDL_spvc_compiler_options_set_uint(options, SPVC_COMPILER_OPTION_HLSL_NONWRITABLE_UAV_TEXTURE_AS_SRV, 1);
@@ -411,7 +839,7 @@ void *SDL_ShaderCross_CompileFromSPIRV(
                 device,
                 &newCreateInfo,
                 translated_source,
-                (shadermodel == 50) ? "cs_5_0" : "cs_5_1");
+                (shadermodel == 50) ? "cs_5_0" : "cs_6_0");
         } else {
             newCreateInfo.code = (const Uint8 *)translated_source;
             newCreateInfo.codeSize = SDL_strlen(translated_source) + 1;
@@ -426,9 +854,9 @@ void *SDL_ShaderCross_CompileFromSPIRV(
         if (backend == SPVC_BACKEND_HLSL) {
             const char *profile;
             if (newCreateInfo.stage == SDL_GPU_SHADERSTAGE_VERTEX) {
-                profile = (shadermodel == 50) ? "vs_5_0" : "vs_5_1";
+                profile = (shadermodel == 50) ? "vs_5_0" : "vs_6_0";
             } else {
-                profile = (shadermodel == 50) ? "ps_5_0" : "ps_5_1";
+                profile = (shadermodel == 50) ? "ps_5_0" : "ps_6_0";
             }
             compiledResult = SDL_ShaderCross_CompileFromHLSL(
                 device,
