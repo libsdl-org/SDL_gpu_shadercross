@@ -64,6 +64,9 @@ typedef void *REFIID;
 typedef int BOOL;
 typedef void *REFCLSID;
 typedef wchar_t *LPCWSTR;
+typedef void IDxcBlobEncoding; /* hack, unused */
+typedef void IDxcBlobWide; /* hack, unused */
+typedef void IDxcIncludeHandler; /* hack, unused */
 
 /* Dynamic Library / Linking */
 #ifdef DXCOMPILER_DLL
@@ -148,43 +151,6 @@ typedef struct IDxcBlobVtbl
 struct IDxcBlob
 {
     IDxcBlobVtbl *lpVtbl;
-};
-
-typedef struct IDxcBlobEncoding IDxcBlobEncoding;
-typedef struct IDxcBlobEncodingVtbl
-{
-    HRESULT(__stdcall *QueryInterface)(IDxcBlobEncoding *This, REFIID riid, void **ppvObject);
-    ULONG(__stdcall *AddRef)(IDxcBlobEncoding *This);
-    ULONG(__stdcall *Release)(IDxcBlobEncoding *This);
-
-    LPVOID(__stdcall *GetBufferPointer)(IDxcBlobEncoding *This);
-    SIZE_T(__stdcall *GetBufferSize)(IDxcBlobEncoding *This);
-
-    HRESULT(__stdcall *GetEncoding)(IDxcBlobEncoding *This, BOOL *pKnown, Uint32 *pCodePage);
-} IDxcBlobEncodingVtbl;
-struct IDxcBlobEncoding
-{
-    IDxcBlobEncodingVtbl *lpVtbl;
-};
-
-typedef struct IDxcBlobWide IDxcBlobWide;
-typedef struct IDxcBlobWideVtbl
-{
-    HRESULT(__stdcall *QueryInterface)(IDxcBlobWide *This, REFIID riid, void **ppvObject);
-    ULONG(__stdcall *AddRef)(IDxcBlobWide *This);
-    ULONG(__stdcall *Release)(IDxcBlobWide *This);
-
-    LPVOID(__stdcall *GetBufferPointer)(IDxcBlobWide *This);
-    SIZE_T(__stdcall *GetBufferSize)(IDxcBlobWide *This);
-
-    HRESULT(__stdcall *GetEncoding)(IDxcBlobWide *This, BOOL *pKnown, Uint32 *pCodePage);
-
-    LPCWSTR(__stdcall *GetStringPointer)(IDxcBlobWide *This);
-    SIZE_T(__stdcall *GetStringLength)(IDxcBlobWide *This);
-} IDxcBlobWideVtbl;
-struct IDxcBlobWide
-{
-    IDxcBlobWideVtbl *lpVtbl;
 };
 
 static Uint8 IID_IDxcBlobUtf8[] = {
@@ -298,7 +264,7 @@ typedef struct IDxcCompiler3Vtbl
         const DxcBuffer *pSource,
         LPCWSTR *pArguments,
         Uint32 argCount,
-        void *pIncludeHandler, /* Technically IDxcIncludeHandler, but whatever... */
+        IDxcIncludeHandler *pIncludeHandler,
         REFIID riid,
         LPVOID *ppResult
     );
@@ -430,7 +396,7 @@ static void *SDL_ShaderCross_INTERNAL_CompileDXC(
                                      (void**) &errors,
                                      NULL);
         SDL_LogError(SDL_LOG_CATEGORY_GPU,
-                     "HLSL compilation failed: %ls",
+                     "HLSL compilation failed: %s",
                       errors->lpVtbl->GetStringPointer(errors));
         dxcResult->lpVtbl->Release(dxcResult);
         return NULL;
