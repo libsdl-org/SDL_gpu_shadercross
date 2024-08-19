@@ -77,6 +77,17 @@ typedef wchar_t *LPCWSTR;
 #define DXCOMPILER_DLL "libdxcompiler.so"
 #endif
 
+#ifdef DXIL_DLL
+#undef DXIL_DLL
+#endif
+#if defined(_WIN32)
+#define DXIL_DLL "dxil.dll"
+#elif defined(__APPLE__)
+#define DXIL_DLL "libdxil.dylib"
+#else
+#define DXIL_DLL "libdxil.so"
+#endif
+
 /* Unlike vkd3d-utils, libdxcompiler.so does not use msabi */
 #if !defined(_WIN32)
 #define __stdcall
@@ -344,6 +355,15 @@ static void *SDL_ShaderCross_INTERNAL_CompileDXC(
         if (dxcompiler_dll == NULL) {
             return NULL;
         }
+    }
+
+    /* Try to load DXIL, we don't need it directly but if it doesn't exist the code will not be loadable */
+    if (!spirv) {
+        if (!SDL_LoadObject(DXIL_DLL)) {
+            SDL_LogError(SDL_LOG_CATEGORY_GPU, "Failed to load DXIL library, this will cause pipeline creation failures!");
+            return NULL;
+        }
+        SDL_UnloadObject(DXIL_DLL);
     }
 
     if (SDL_DxcCreateInstance == NULL) {
