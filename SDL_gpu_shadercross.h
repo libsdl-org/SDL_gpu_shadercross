@@ -325,12 +325,12 @@ static void *SDL_ShaderCross_INTERNAL_CompileDXC(
 
     /* Try to load DXIL, we don't need it directly but if it doesn't exist the code will not be loadable */
     if (!spirv) {
-        if (!SDL_LoadObject(DXIL_DLL)) {
+        void* dxil_dll = SDL_LoadObject(DXIL_DLL);
+        if (dxil_dll == NULL) {
             SDL_LogError(SDL_LOG_CATEGORY_GPU, "Failed to load DXIL library, this will cause pipeline creation failures!");
             return NULL;
         }
-        // ???
-        //SDL_UnloadObject(DXIL_DLL);
+        SDL_UnloadObject(dxil_dll); /* Unload immediately, we don't actually need it*/ 
     }
 
     if (SDL_DxcCreateInstance == NULL) {
