@@ -305,8 +305,8 @@ static void *SDL_ShaderCross_INTERNAL_CompileDXC(
     IDxcBlob *blob;
     IDxcBlobUtf8 *errors;
     LPCWSTR args[] = {
-        L"-E",
-        L"main", /* FIXME */
+        (LPCWSTR)L"-E",
+        (LPCWSTR)L"main", /* FIXME */
         NULL,
         NULL,
         NULL
@@ -329,7 +329,8 @@ static void *SDL_ShaderCross_INTERNAL_CompileDXC(
             SDL_LogError(SDL_LOG_CATEGORY_GPU, "Failed to load DXIL library, this will cause pipeline creation failures!");
             return NULL;
         }
-        SDL_UnloadObject(DXIL_DLL);
+        // ???
+        //SDL_UnloadObject(DXIL_DLL);
     }
 
     if (SDL_DxcCreateInstance == NULL) {
@@ -353,18 +354,18 @@ static void *SDL_ShaderCross_INTERNAL_CompileDXC(
     source.Encoding = 0; /* FIXME: The docs for this are a _bit_ scarce */
 
     if (SDL_strcmp(shaderProfile, "ps_6_0") == 0) {
-        args[argCount++] = L"-T";
-        args[argCount++] = L"ps_6_0";
+        args[argCount++] = (LPCWSTR)L"-T";
+        args[argCount++] = (LPCWSTR)L"ps_6_0";
     } else if (SDL_strcmp(shaderProfile, "vs_6_0") == 0) {
-        args[argCount++] = L"-T";
-        args[argCount++] = L"vs_6_0";
+        args[argCount++] = (LPCWSTR)L"-T";
+        args[argCount++] = (LPCWSTR)L"vs_6_0";
     } else if (SDL_strcmp(shaderProfile, "cs_6_0") == 0) {
-        args[argCount++] = L"-T";
-        args[argCount++] = L"cs_6_0";
+        args[argCount++] = (LPCWSTR)L"-T";
+        args[argCount++] = (LPCWSTR)L"cs_6_0";
     }
 
     if (spirv) {
-        args[argCount++] = L"-spirv";
+        args[argCount++] = (LPCWSTR)L"-spirv";
     }
 
     ret = SDL_DxcInstance->lpVtbl->Compile(
