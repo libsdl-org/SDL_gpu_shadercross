@@ -73,7 +73,13 @@ typedef void IDxcIncludeHandler; /* hack, unused */
 #undef DXCOMPILER_DLL
 #endif
 #if defined(_WIN32)
+#if defined(_GAMING_XBOX_SCARLETT)
+#define DXCOMPILER_DLL "dxcompiler_xs.dll"
+#elif defined(_GAMING_XBOX_XBOXONE)
+#define DXCOMPILER_DLL "dxcompiler_x.dll"
+#else
 #define DXCOMPILER_DLL "dxcompiler.dll"
+#endif
 #elif defined(__APPLE__)
 #define DXCOMPILER_DLL "libdxcompiler.dylib"
 #else
@@ -301,12 +307,12 @@ static void *SDL_ShaderCross_INTERNAL_CompileDXC(
 {
     DxcBuffer source;
     IDxcResult *dxcResult;
-    DXC_OUT_KIND blobOut;
     IDxcBlob *blob;
     IDxcBlobUtf8 *errors;
     LPCWSTR args[] = {
         (LPCWSTR)L"-E",
         (LPCWSTR)L"main", /* FIXME */
+        NULL,
         NULL,
         NULL,
         NULL
@@ -323,6 +329,7 @@ static void *SDL_ShaderCross_INTERNAL_CompileDXC(
         }
     }
 
+#ifndef _GAMING_XBOX
     /* Try to load DXIL, we don't need it directly but if it doesn't exist the code will not be loadable */
     if (!spirv) {
         void* dxil_dll = SDL_LoadObject(DXIL_DLL);
@@ -332,6 +339,7 @@ static void *SDL_ShaderCross_INTERNAL_CompileDXC(
         }
         SDL_UnloadObject(dxil_dll); /* Unload immediately, we don't actually need it*/ 
     }
+#endif
 
     if (SDL_DxcCreateInstance == NULL) {
         SDL_DxcCreateInstance = (DxcCreateInstanceProc)SDL_LoadFunction(dxcompiler_dll, "DxcCreateInstance");
@@ -368,6 +376,10 @@ static void *SDL_ShaderCross_INTERNAL_CompileDXC(
         args[argCount++] = (LPCWSTR)L"-spirv";
     }
 
+#ifdef _GAMING_XBOX
+    args[argCount++] = L"-D__XBOX_DISABLE_PRECOMPILE=1";
+#endif
+
     ret = SDL_DxcInstance->lpVtbl->Compile(
         SDL_DxcInstance,
         &source,
@@ -388,34 +400,26 @@ static void *SDL_ShaderCross_INTERNAL_CompileDXC(
         return NULL;
     }
 
-
-    blobOut = dxcResult->lpVtbl->PrimaryOutput(dxcResult);
-    if (blobOut == DXC_OUT_ERRORS) {
-        dxcResult->lpVtbl->GetOutput(dxcResult,
-                                     DXC_OUT_ERRORS,
-                                     IID_IDxcBlobUtf8,
-                                     (void**) &errors,
-                                     NULL);
-        SDL_LogError(SDL_LOG_CATEGORY_GPU,
-                     "HLSL compilation failed: %s",
-                      errors->lpVtbl->GetStringPointer(errors));
-        dxcResult->lpVtbl->Release(dxcResult);
-        return NULL;
-    } else if (blobOut == DXC_OUT_OBJECT) {
-        dxcResult->lpVtbl->GetOutput(dxcResult,
-                                     DXC_OUT_OBJECT,
-                                     IID_IDxcBlob,
-                                     (void**) &blob,
-                                     NULL);
-        if (blob == NULL || blob->lpVtbl->GetBufferSize(blob) == 0) {
-            SDL_LogError(SDL_LOG_CATEGORY_GPU, "IDxcBlob fetch failed");
+    dxcResult->lpVtbl->GetOutput(dxcResult,
+                                 DXC_OUT_ERRORS,
+                                 IID_IDxcBlobUtf8,
+                                 &errors,
+                                 NULL);
+    if (errors != NULL && errors->lpVtbl->GetBufferSize(errors) != 0) {
+            SDL_LogError(SDL_LOG_CATEGORY_GPU,
+                    "HLSL compilation failed: %s",
+                    errors->lpVtbl->GetBufferPointer(errors));
             dxcResult->lpVtbl->Release(dxcResult);
             return NULL;
-        }
-    } else {
-        SDL_LogError(SDL_LOG_CATEGORY_GPU,
-                     "Unexpeced DxcResult output: %d",
-                     blobOut);
+    }
+
+    ret = dxcResult->lpVtbl->GetOutput(dxcResult,
+                                       DXC_OUT_OBJECT,
+                                       IID_IDxcBlob,
+                                       (void**) &blob,
+                                       NULL);
+    if (ret < 0) {
+        SDL_LogError(SDL_LOG_CATEGORY_GPU, "IDxcBlob fetch failed");
         dxcResult->lpVtbl->Release(dxcResult);
         return NULL;
     }
