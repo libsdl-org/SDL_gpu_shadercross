@@ -403,7 +403,7 @@ static void *SDL_ShaderCross_INTERNAL_CompileDXC(
     dxcResult->lpVtbl->GetOutput(dxcResult,
                                  DXC_OUT_ERRORS,
                                  IID_IDxcBlobUtf8,
-                                 &errors,
+                                 (void**) &errors,
                                  NULL);
     if (errors != NULL && errors->lpVtbl->GetBufferSize(errors) != 0) {
             SDL_LogError(SDL_LOG_CATEGORY_GPU,
@@ -433,7 +433,7 @@ static void *SDL_ShaderCross_INTERNAL_CompileDXC(
             SDL_GPU_SHADERFORMAT_SPIRV :
             SDL_GPU_SHADERFORMAT_DXIL;
 
-        result = SDL_GpuCreateComputePipeline(device, &newCreateInfo);
+        result = SDL_CreateGpuComputePipeline(device, &newCreateInfo);
     } else {
         SDL_GpuShaderCreateInfo newCreateInfo;
         newCreateInfo = *(SDL_GpuShaderCreateInfo *)createInfo;
@@ -443,7 +443,7 @@ static void *SDL_ShaderCross_INTERNAL_CompileDXC(
             SDL_GPU_SHADERFORMAT_SPIRV :
             SDL_GPU_SHADERFORMAT_DXIL;
 
-        result = SDL_GpuCreateShader(device, &newCreateInfo);
+        result = SDL_CreateGpuShader(device, &newCreateInfo);
     }
     dxcResult->lpVtbl->Release(dxcResult);
 
@@ -577,7 +577,7 @@ static void *SDL_ShaderCross_INTERNAL_CompileFXC(
         newCreateInfo.codeSize = blob->lpVtbl->GetBufferSize(blob);
         newCreateInfo.format = SDL_GPU_SHADERFORMAT_DXBC;
 
-        result = SDL_GpuCreateComputePipeline(device, &newCreateInfo);
+        result = SDL_CreateGpuComputePipeline(device, &newCreateInfo);
     } else {
         SDL_GpuShaderCreateInfo newCreateInfo;
         newCreateInfo = *(SDL_GpuShaderCreateInfo *)createInfo;
@@ -585,7 +585,7 @@ static void *SDL_ShaderCross_INTERNAL_CompileFXC(
         newCreateInfo.codeSize = blob->lpVtbl->GetBufferSize(blob);
         newCreateInfo.format = SDL_GPU_SHADERFORMAT_DXBC;
 
-        result = SDL_GpuCreateShader(device, &newCreateInfo);
+        result = SDL_CreateGpuShader(device, &newCreateInfo);
     }
 
     blob->lpVtbl->Release(blob);
@@ -598,7 +598,7 @@ extern void *SDL_ShaderCross_CompileFromHLSL(SDL_GpuDevice *device,
                                              const char *hlslSource,
                                              const char *shaderProfile)
 {
-    switch (SDL_GpuGetDriver(device)) {
+    switch (SDL_GetGpuDriver(device)) {
     case SDL_GPU_DRIVER_D3D11:
         return SDL_ShaderCross_INTERNAL_CompileFXC(device, createInfo, hlslSource, shaderProfile);
     case SDL_GPU_DRIVER_D3D12:
@@ -696,12 +696,12 @@ void *SDL_ShaderCross_CompileFromSPIRV(
     const char *cleansed_entrypoint;
     void *compiledResult;
 
-    switch (SDL_GpuGetDriver(device)) {
+    switch (SDL_GetGpuDriver(device)) {
     case SDL_GPU_DRIVER_VULKAN:
         if (isCompute) {
-            return SDL_GpuCreateComputePipeline(device, (SDL_GpuComputePipelineCreateInfo*) originalCreateInfo);
+            return SDL_CreateGpuComputePipeline(device, (SDL_GpuComputePipelineCreateInfo*) originalCreateInfo);
         } else {
-            return SDL_GpuCreateShader(device, (SDL_GpuShaderCreateInfo*) originalCreateInfo);
+            return SDL_CreateGpuShader(device, (SDL_GpuShaderCreateInfo*) originalCreateInfo);
         }
     case SDL_GPU_DRIVER_D3D11:
         backend = SPVC_BACKEND_HLSL;
@@ -788,7 +788,7 @@ void *SDL_ShaderCross_CompileFromSPIRV(
     }
 
     if (backend == SPVC_BACKEND_HLSL) {
-        if (SDL_GpuGetDriver(device) == SDL_GPU_DRIVER_D3D11) {
+        if (SDL_GetGpuDriver(device) == SDL_GPU_DRIVER_D3D11) {
             shadermodel = 50;
         } else {
             shadermodel = 60;
@@ -834,7 +834,7 @@ void *SDL_ShaderCross_CompileFromSPIRV(
         } else {
             newCreateInfo.code = (const Uint8 *)translated_source;
             newCreateInfo.codeSize = SDL_strlen(translated_source) + 1;
-            compiledResult = SDL_GpuCreateComputePipeline(device, &newCreateInfo);
+            compiledResult = SDL_CreateGpuComputePipeline(device, &newCreateInfo);
         }
     } else {
         SDL_GpuShaderCreateInfo newCreateInfo;
@@ -857,7 +857,7 @@ void *SDL_ShaderCross_CompileFromSPIRV(
         } else {
             newCreateInfo.code = (const Uint8 *)translated_source;
             newCreateInfo.codeSize = SDL_strlen(translated_source) + 1;
-            compiledResult = SDL_GpuCreateShader(device, &newCreateInfo);
+            compiledResult = SDL_CreateGpuShader(device, &newCreateInfo);
         }
     }
 
