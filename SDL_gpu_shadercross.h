@@ -408,7 +408,7 @@ static void *SDL_ShaderCross_INTERNAL_CompileDXC(
     if (errors != NULL && errors->lpVtbl->GetBufferSize(errors) != 0) {
             SDL_LogError(SDL_LOG_CATEGORY_GPU,
                     "HLSL compilation failed: %s",
-                    errors->lpVtbl->GetBufferPointer(errors));
+                    (char *)errors->lpVtbl->GetBufferPointer(errors));
             dxcResult->lpVtbl->Release(dxcResult);
             return NULL;
     }
