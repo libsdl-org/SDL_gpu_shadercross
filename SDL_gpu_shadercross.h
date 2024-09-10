@@ -912,12 +912,12 @@ SDL_bool SDL_ShaderCross_Init(void)
         CHECK_FUNC(spvc_compiler_get_cleansed_entry_point_name)
 #undef CHECK_FUNC
     }
-#endif /* SDL_GPU_SHADERCROSS_STATIC */
 
     if(spirvcross_dll != NULL && !spvc_loaded) {
         SDL_UnloadObject(spirvcross_dll);
         spirvcross_dll = NULL;
     }
+#endif /* SDL_GPU_SHADERCROSS_STATIC */
 
     return SDL_TRUE;
 }
@@ -971,7 +971,13 @@ SDL_GPUShaderFormat SDL_ShaderCross_GetSPIRVShaderFormats()
     SDL_GPUShaderFormat supportedFormats = SDL_GPU_SHADERFORMAT_SPIRV;
 
     /* SPIRV-Cross allows us to cross compile to MSL */
-    if(spirvcross_dll != NULL) {
+    if (
+#ifndef SDL_GPU_SHADERCROSS_STATIC
+        spirvcross_dll != NULL
+#else /* SDL_GPU_SHADERCROSS_STATIC */
+        true
+#endif /* SDL_GPU_SHADERCROSS_STATIC */
+    ) {
         supportedFormats |= SDL_GPU_SHADERFORMAT_MSL;
 
 #if SDL_GPU_SHADERCROSS_HLSL
