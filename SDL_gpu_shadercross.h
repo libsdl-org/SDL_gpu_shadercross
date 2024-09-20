@@ -16,7 +16,7 @@
  *
  * \threadsafety This should only be called once, from a single thread.
  */
-extern SDL_bool SDL_ShaderCross_Init();
+extern bool SDL_ShaderCross_Init();
 /**
  * De-initializes SDL_gpu_shadercross
  *
@@ -46,7 +46,7 @@ extern SDL_GPUShaderFormat SDL_ShaderCross_GetSPIRVShaderFormats();
  */
 extern void *SDL_ShaderCross_CompileFromSPIRV(SDL_GPUDevice *device,
                                               void *createInfo,
-                                              SDL_bool isCompute);
+                                              bool isCompute);
 #endif /* SDL_GPU_SHADERCROSS_SPIRVCROSS */
 
 #if SDL_GPU_SHADERCROSS_HLSL
@@ -348,7 +348,7 @@ static void *SDL_ShaderCross_INTERNAL_CompileDXC(
     const char *hlslSource,
     const char *shaderProfile,
     UINT encoding,
-    SDL_bool spirv)
+    bool spirv)
 {
     DxcBuffer source;
     IDxcResult *dxcResult;
@@ -609,10 +609,10 @@ extern void *SDL_ShaderCross_CompileFromHLSL(SDL_GPUDevice *device,
         return SDL_ShaderCross_INTERNAL_CompileFXC(device, createInfo, hlslSource, shaderProfile);
     }
     if (format & SDL_GPU_SHADERFORMAT_DXIL) {
-        return SDL_ShaderCross_INTERNAL_CompileDXC(device, createInfo, hlslSource, shaderProfile, DXC_CP_ACP, SDL_FALSE);
+        return SDL_ShaderCross_INTERNAL_CompileDXC(device, createInfo, hlslSource, shaderProfile, DXC_CP_ACP, false);
     }
     if (format & SDL_GPU_SHADERFORMAT_SPIRV) {
-        return SDL_ShaderCross_INTERNAL_CompileDXC(device, createInfo, hlslSource, shaderProfile, DXC_CP_ACP, SDL_TRUE);
+        return SDL_ShaderCross_INTERNAL_CompileDXC(device, createInfo, hlslSource, shaderProfile, DXC_CP_ACP, true);
     }
 
     SDL_SetError("SDL_ShaderCross_CompileFromHLSL: Unexpected SDL_GPUShaderFormat");
@@ -689,7 +689,7 @@ static pfn_spvc_compiler_get_cleansed_entry_point_name SDL_spvc_compiler_get_cle
 void *SDL_ShaderCross_CompileFromSPIRV(
     SDL_GPUDevice *device,
     void *originalCreateInfo,
-    SDL_bool isCompute)
+    bool isCompute)
 {
     SDL_GPUShaderCreateInfo *createInfo;
     spvc_result result;
@@ -842,7 +842,7 @@ void *SDL_ShaderCross_CompileFromSPIRV(
 
 #endif /* SDL_GPU_SHADERCROSS_SPIRVCROSS */
 
-SDL_bool SDL_ShaderCross_Init(void)
+bool SDL_ShaderCross_Init(void)
 {
     dxcompiler_dll = SDL_LoadObject(DXCOMPILER_DLL);
     if (dxcompiler_dll != NULL) {
@@ -880,12 +880,12 @@ SDL_bool SDL_ShaderCross_Init(void)
         }
     }
 
-    SDL_bool spvc_loaded = SDL_FALSE;
+    bool spvc_loaded = false;
 
 #ifndef SDL_GPU_SHADERCROSS_STATIC
     spirvcross_dll = SDL_LoadObject(SDL_GPU_SPIRV_CROSS_DLL);
     if (spirvcross_dll != NULL) {
-        spvc_loaded = SDL_TRUE;
+        spvc_loaded = true;
     }
 
     if (spvc_loaded) {
@@ -893,7 +893,7 @@ SDL_bool SDL_ShaderCross_Init(void)
     if (SDL_##func == NULL) {                                             \
         SDL_##func = (pfn_##func)SDL_LoadFunction(spirvcross_dll, #func); \
         if (SDL_##func == NULL) {                                         \
-            spvc_loaded = SDL_FALSE;                                      \
+            spvc_loaded = false;                                      \
         }                                                                 \
     }
         CHECK_FUNC(spvc_context_create)
@@ -916,7 +916,7 @@ SDL_bool SDL_ShaderCross_Init(void)
     }
 #endif /* SDL_GPU_SHADERCROSS_STATIC */
 
-    return SDL_TRUE;
+    return true;
 }
 
 void SDL_ShaderCross_Quit(void)
