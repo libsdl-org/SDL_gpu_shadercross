@@ -333,7 +333,7 @@ struct IDxcCompiler3
 /* *INDENT-ON* */ // clang-format on
 
 /* DXCompiler */
-static void *dxcompiler_dll = NULL;
+static SDL_SharedObject *dxcompiler_dll = NULL;
 
 typedef HRESULT(__stdcall *DxcCreateInstanceProc)(
     REFCLSID rclsid,
@@ -527,7 +527,7 @@ struct ID3DBlob
 #define ID3D10Blob ID3DBlob
 
 /* D3DCompiler */
-static void *d3dcompiler_dll = NULL;
+static SDL_SharedObject *d3dcompiler_dll = NULL;
 
 typedef HRESULT(__stdcall *pfn_D3DCompile)(
     LPCVOID pSrcData,
@@ -641,7 +641,7 @@ extern void *SDL_ShaderCross_CompileFromHLSL(SDL_GPUDevice *device,
 #endif
 #endif /* SDL_GPU_SPIRV_CROSS_DLL */
 
-static void *spirvcross_dll = NULL;
+static SDL_SharedObject *spirvcross_dll = NULL;
 
 typedef spvc_result (*pfn_spvc_context_create)(spvc_context *context);
 typedef void (*pfn_spvc_context_destroy)(spvc_context);
@@ -848,7 +848,7 @@ bool SDL_ShaderCross_Init(void)
     if (dxcompiler_dll != NULL) {
 #ifndef _GAMING_XBOX
         /* Try to load DXIL, we don't need it directly but if it doesn't exist the code will not be loadable */
-        void *dxil_dll = SDL_LoadObject(DXIL_DLL);
+        SDL_SharedObject *dxil_dll = SDL_LoadObject(DXIL_DLL);
         if (dxil_dll == NULL) {
             SDL_LogError(SDL_LOG_CATEGORY_GPU, "Failed to load DXIL library, this will cause pipeline creation failures!");
 
