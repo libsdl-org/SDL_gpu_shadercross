@@ -37,7 +37,7 @@
  *
  * \threadsafety This should only be called once, from a single thread.
  */
-extern bool SDL_ShaderCross_Init();
+extern bool SDL_ShaderCross_Init(void);
 /**
  * De-initializes SDL_gpu_shadercross
  *
@@ -51,7 +51,7 @@ extern void SDL_ShaderCross_Quit(void);
  *
  * \threadsafety It is safe to call this function from any thread.
  */
-extern SDL_GPUShaderFormat SDL_ShaderCross_GetSPIRVShaderFormats();
+extern SDL_GPUShaderFormat SDL_ShaderCross_GetSPIRVShaderFormats(void);
 
 /**
  * Compile an SDL shader from SPIRV code.
@@ -76,7 +76,7 @@ extern void *SDL_ShaderCross_CompileFromSPIRV(SDL_GPUDevice *device,
  *
  * \threadsafety It is safe to call this function from any thread.
  */
-extern SDL_GPUShaderFormat SDL_ShaderCross_GetHLSLShaderFormats();
+extern SDL_GPUShaderFormat SDL_ShaderCross_GetHLSLShaderFormats(void);
 
 /**
  * Compile an SDL shader from HLSL code.
@@ -982,7 +982,7 @@ void SDL_ShaderCross_Quit(void)
 
 #ifdef SDL_GPU_SHADERCROSS_SPIRVCROSS
 
-SDL_GPUShaderFormat SDL_ShaderCross_GetSPIRVShaderFormats()
+SDL_GPUShaderFormat SDL_ShaderCross_GetSPIRVShaderFormats(void)
 {
     /* SPIRV can always be output as-is with no preprocessing */
     SDL_GPUShaderFormat supportedFormats = SDL_GPU_SHADERFORMAT_SPIRV;
@@ -1017,7 +1017,7 @@ SDL_GPUShaderFormat SDL_ShaderCross_GetSPIRVShaderFormats()
 
 #if SDL_GPU_SHADERCROSS_HLSL
 
-SDL_GPUShaderFormat SDL_ShaderCross_GetHLSLShaderFormats()
+SDL_GPUShaderFormat SDL_ShaderCross_GetHLSLShaderFormats(void)
 {
     SDL_GPUShaderFormat supportedFormats = 0;
 
