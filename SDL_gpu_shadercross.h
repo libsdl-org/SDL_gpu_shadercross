@@ -834,8 +834,6 @@ static void *SDL_ShaderCross_INTERNAL_CompileFromSPIRV(
         SDL_spvc_compiler_options_set_uint(options, SPVC_COMPILER_OPTION_HLSL_SHADER_MODEL, shadermodel);
         SDL_spvc_compiler_options_set_uint(options, SPVC_COMPILER_OPTION_HLSL_NONWRITABLE_UAV_TEXTURE_AS_SRV, 1);
         SDL_spvc_compiler_options_set_uint(options, SPVC_COMPILER_OPTION_HLSL_FLATTEN_MATRIX_VERTEX_INPUT_SEMANTICS, 1);
-    } else if (backend == SPVC_BACKEND_MSL) {
-        SDL_spvc_compiler_options_set_uint(options, SPVC_COMPILER_OPTION_MSL_ENABLE_DECORATION_BINDING, 1);
     }
 
     result = SDL_spvc_compiler_install_compiler_options(compiler, options);
