@@ -310,6 +310,7 @@ int main(int argc, char *argv[])
                     entrypointName,
                     shaderStage);
                 SDL_IOprintf(outputIO, "%s", buffer);
+                SDL_free(spirv);
                 SDL_free(buffer);
                 break;
             }
