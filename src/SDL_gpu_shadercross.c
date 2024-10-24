@@ -20,6 +20,8 @@
 */
 
 #include "SDL_gpu_shadercross.h"
+#include <SDL3/SDL_loadso.h>
+#include <SDL3/SDL_log.h>
 
 #if SDL_GPU_SHADERCROSS_HLSL
 

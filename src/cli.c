@@ -19,9 +19,28 @@
   3. This notice may not be removed or altered from any source distribution.
 */
 
-#define SDL_GPU_SHADERCROSS_IMPLEMENTATION
+#include "SDL_gpu_shadercross.h"
+#include "stdio.h"
+
+void print_help()
+{
+   fprintf(stdout, "%s", "Usage: shadercross input_file [options]\n");
+}
 
 int main(int argc, char *argv[])
 {
-    return 0;
+   if (argc < 2)
+   {
+      print_help();
+      return 1;
+   }
+
+   if (!SDL_ShaderCross_Init())
+   {
+      fprintf(stderr, "%s", "Failed to initialize shadercross!");
+      return 1;
+   }
+
+   SDL_ShaderCross_Quit();
+   return 0;
 }

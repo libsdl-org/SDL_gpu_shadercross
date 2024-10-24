@@ -22,7 +22,15 @@
 #ifndef SDL_GPU_SHADERCROSS_H
 #define SDL_GPU_SHADERCROSS_H
 
-#include <SDL3/SDL.h>
+#ifdef _WIN32
+#define SHADERCROSSAPI __declspec(dllexport)
+#define SHADERCROSSCALL __cdecl
+#else
+#define CRAMAPI
+#define CRAMCALL
+#endif
+
+#include <SDL3/SDL_gpu.h>
 
 #ifndef SDL_GPU_SHADERCROSS_SPIRVCROSS
 #define SDL_GPU_SHADERCROSS_SPIRVCROSS 1
@@ -41,13 +49,13 @@
  *
  * \threadsafety This should only be called once, from a single thread.
  */
-extern bool SDL_ShaderCross_Init(void);
+extern SHADERCROSSAPI bool SDL_ShaderCross_Init(void);
 /**
  * De-initializes SDL_gpu_shadercross
  *
  * \threadsafety This should only be called once, from a single thread.
  */
-extern void SDL_ShaderCross_Quit(void);
+extern SHADERCROSSAPI void SDL_ShaderCross_Quit(void);
 
 #if SDL_GPU_SHADERCROSS_SPIRVCROSS
 /**
@@ -55,7 +63,7 @@ extern void SDL_ShaderCross_Quit(void);
  *
  * \threadsafety It is safe to call this function from any thread.
  */
-extern SDL_GPUShaderFormat SDL_ShaderCross_GetSPIRVShaderFormats(void);
+extern SHADERCROSSAPI SDL_GPUShaderFormat SDL_ShaderCross_GetSPIRVShaderFormats(void);
 
 /**
  * Compile an SDL GPU shader from SPIRV code.
@@ -66,7 +74,7 @@ extern SDL_GPUShaderFormat SDL_ShaderCross_GetSPIRVShaderFormats(void);
  *
  * \threadsafety It is safe to call this function from any thread.
  */
-extern SDL_GPUShader *SDL_ShaderCross_CompileGraphicsShaderFromSPIRV(SDL_GPUDevice *device,
+extern SHADERCROSSAPI SDL_GPUShader *SDL_ShaderCross_CompileGraphicsShaderFromSPIRV(SDL_GPUDevice *device,
                                               const SDL_GPUShaderCreateInfo *createInfo);
 
 /**
@@ -78,7 +86,7 @@ extern SDL_GPUShader *SDL_ShaderCross_CompileGraphicsShaderFromSPIRV(SDL_GPUDevi
  *
  * \threadsafety It is safe to call this function from any thread.
  */
-extern SDL_GPUComputePipeline *SDL_ShaderCross_CompileComputePipelineFromSPIRV(SDL_GPUDevice *device,
+extern SHADERCROSSAPI SDL_GPUComputePipeline *SDL_ShaderCross_CompileComputePipelineFromSPIRV(SDL_GPUDevice *device,
                                               const SDL_GPUComputePipelineCreateInfo *createInfo);
 #endif /* SDL_GPU_SHADERCROSS_SPIRVCROSS */
 
@@ -88,7 +96,7 @@ extern SDL_GPUComputePipeline *SDL_ShaderCross_CompileComputePipelineFromSPIRV(S
  *
  * \threadsafety It is safe to call this function from any thread.
  */
-extern SDL_GPUShaderFormat SDL_ShaderCross_GetHLSLShaderFormats(void);
+extern SHADERCROSSAPI SDL_GPUShaderFormat SDL_ShaderCross_GetHLSLShaderFormats(void);
 
 /**
  * Compile an SDL GPU shader from HLSL code.
@@ -101,7 +109,7 @@ extern SDL_GPUShaderFormat SDL_ShaderCross_GetHLSLShaderFormats(void);
  *
  * \threadsafety It is safe to call this function from any thread.
  */
-extern SDL_GPUShader *SDL_ShaderCross_CompileGraphicsShaderFromHLSL(SDL_GPUDevice *device,
+extern SHADERCROSSAPI SDL_GPUShader *SDL_ShaderCross_CompileGraphicsShaderFromHLSL(SDL_GPUDevice *device,
                                              const SDL_GPUShaderCreateInfo *createInfo,
                                              const char *hlslSource,
                                              const char *shaderProfile);
@@ -117,7 +125,7 @@ extern SDL_GPUShader *SDL_ShaderCross_CompileGraphicsShaderFromHLSL(SDL_GPUDevic
  *
  * \threadsafety It is safe to call this function from any thread.
  */
-extern SDL_GPUComputePipeline *SDL_ShaderCross_CompileComputePipelineFromHLSL(SDL_GPUDevice *device,
+extern SHADERCROSSAPI SDL_GPUComputePipeline *SDL_ShaderCross_CompileComputePipelineFromHLSL(SDL_GPUDevice *device,
                                              const SDL_GPUComputePipelineCreateInfo *createInfo,
                                              const char *hlslSource,
                                              const char *shaderProfile);
