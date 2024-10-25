@@ -52,7 +52,7 @@ jobs:
 
       - name: Configure (CMake)
         run: |
-          cmake -S . -B build -GNinja -DBUILD_STATIC=ON -DBUILD_CLI=ON -DENABLE_WERROR=OFF -DCMAKE_POLICY_DEFAULT_CMP0074=NEW
+          cmake -S . -B build -GNinja -DBUILD_STATIC=ON -DBUILD_CLI=ON -DENABLE_WERROR=ON -DCMAKE_POLICY_DEFAULT_CMP0074=NEW
 
       - name: Build (CMake)
         id: build
