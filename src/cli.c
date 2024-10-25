@@ -179,6 +179,11 @@ int main(int argc, char *argv[])
         print_help();
         return 1;
     }
+    if (!outputFilename) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%s: missing output path", argv[0]);
+        print_help();
+        return 1;
+    }
     fileData = SDL_LoadFile(filename, &fileSize);
     if (fileData == NULL) {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Invalid file (%s)", SDL_GetError());
