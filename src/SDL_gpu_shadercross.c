@@ -99,7 +99,7 @@ typedef enum DXC_OUT_KIND
     DXC_OUT_TIME_TRACE = 13,
     DXC_OUT_LAST = DXC_OUT_TIME_TRACE,
     DXC_OUT_NUM_ENUMS,
-    DXC_OUT_FORCE_DWORD = 0xFFFFFFFF
+    // DXC_OUT_FORCE_DWORD = 0xFFFFFFFF
 } DXC_OUT_KIND;
 
 #define DXC_CP_UTF8  65001
@@ -296,9 +296,11 @@ static void *SDL_ShaderCross_INTERNAL_CompileUsingDXC(
     IDxcResult *dxcResult;
     IDxcBlob *blob;
     IDxcBlobUtf8 *errors;
+    size_t entryPointLength = SDL_utf8strlen(entrypoint) + 1;
+    const char *entryPointUtf16 = SDL_iconv_string("UTF-16", "UTF-8", entrypoint, entryPointLength);
     LPCWSTR args[] = {
         (LPCWSTR)L"-E",
-        (LPCWSTR)L"main", /* FIXME: convert entry point to UTF-16 */
+        (LPCWSTR)entryPointUtf16,
         NULL,
         NULL,
         NULL,
@@ -1016,7 +1018,6 @@ static void *SDL_ShaderCross_INTERNAL_CreateShaderFromSPIRV(
     const void *originalCreateInfo,
     bool isCompute)
 {
-    const SDL_GPUShaderCreateInfo *createInfo;
     SDL_GPUShaderFormat format;
     void *compiledResult;
 
@@ -1041,7 +1042,7 @@ static void *SDL_ShaderCross_INTERNAL_CreateShaderFromSPIRV(
 
     void *translatedCreateInfo = SDL_ShaderCross_INTERNAL_TranslateFromSPIRV(
         format,
-        createInfo,
+        originalCreateInfo,
         isCompute);
 
     if (isCompute) {

@@ -74,7 +74,7 @@ extern SDL_DECLSPEC SDL_GPUShaderFormat SDLCALL SDL_ShaderCross_GetSPIRVShaderFo
  *
  * \param bytecode the SPIRV bytecode.
  * \param bytecodeSize the length of the SPIRV bytecode.
- * \param entrypoint the entry point function name for the shader.
+ * \param entrypoint the entry point function name for the shader in UTF-8.
  * \param shaderStage the shader stage to transpile the shader with.
  */
 extern SDL_DECLSPEC void * SDLCALL SDL_ShaderCross_TranspileMSLFromSPIRV(
@@ -90,7 +90,7 @@ extern SDL_DECLSPEC void * SDLCALL SDL_ShaderCross_TranspileMSLFromSPIRV(
  *
  * \param bytecode the SPIRV bytecode.
  * \param bytecodeSize the length of the SPIRV bytecode.
- * \param entrypoint the entry point function name for the shader.
+ * \param entrypoint the entry point function name for the shader in UTF-8.
  * \param shaderStage the shader stage to transpile the shader with.
  * \param size filled in with the bytecode buffer size.
  */
@@ -108,7 +108,7 @@ extern SDL_DECLSPEC void * SDLCALL SDL_ShaderCross_CompileDXBCFromSPIRV(
  *
  * \param bytecode the SPIRV bytecode.
  * \param bytecodeSize the length of the SPIRV bytecode.
- * \param entrypoint the entry point function name for the shader.
+ * \param entrypoint the entry point function name for the shader in UTF-8.
  * \param shaderStage the shader stage to transpile the shader with.
  * \param size filled in with the bytecode buffer size.
  */
@@ -160,7 +160,7 @@ extern SDL_DECLSPEC SDL_GPUShaderFormat SDLCALL SDL_ShaderCross_GetHLSLShaderFor
  * You must SDL_free the returned buffer once you are done with it.
  *
  * \param hlslSource the HLSL source code for the shader.
- * \param entrypoint the entry point function name for the shader.
+ * \param entrypoint the entry point function name for the shader in UTF-8.
  * \param shaderProfile the shader profile to compile the shader with.
  * \param size filled in with the bytecode buffer size.
  * \returns an SDL_malloc'd buffer containing DXBC bytecode.
@@ -179,7 +179,7 @@ extern SDL_DECLSPEC void * SDLCALL SDL_ShaderCross_CompileDXBCFromHLSL(
  * You must SDL_free the returned buffer once you are done with it.
  *
  * \param hlslSource the HLSL source code for the shader.
- * \param entrypoint the entry point function name for the shader.
+ * \param entrypoint the entry point function name for the shader in UTF-8.
  * \param shaderProfile the shader profile to compile the shader with.
  * \param size filled in with the bytecode buffer size.
  * \returns an SDL_malloc'd buffer containing DXIL bytecode.
@@ -198,7 +198,7 @@ extern SDL_DECLSPEC void * SDLCALL SDL_ShaderCross_CompileDXILFromHLSL(
  * You must SDL_free the returned buffer once you are done with it.
  *
  * \param hlslSource the HLSL source code for the shader.
- * \param entrypoint the entry point function name for the shader.
+ * \param entrypoint the entry point function name for the shader in UTF-8.
  * \param shaderProfile the shader profile to compile the shader with.
  * \param size filled in with the bytecode buffer size.
  * \returns an SDL_malloc'd buffer containing SPIRV bytecode.
