@@ -81,8 +81,7 @@ extern SDL_DECLSPEC SDL_GPUShaderFormat SDLCALL SDL_ShaderCross_GetSPIRVShaderFo
 extern SDL_DECLSPEC void * SDLCALL SDL_ShaderCross_TranspileMSLFromSPIRV(
     const Uint8 *bytecode,
     size_t bytecodeSize,
-    const char *entrypoint,
-    SDL_ShaderCross_ShaderStage shaderStage);
+    const char *entrypoint);
 
 /**
  * Transpile to HLSL code from SPIRV code.

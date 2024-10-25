@@ -220,7 +220,7 @@ int main(int argc, char *argv[])
         }
     }
 
-    if (!stageValid) {
+    if (!stageValid && destinationFormat != SHADERFORMAT_MSL) {
         if (SDL_strcasestr(filename, ".vert")) {
             shaderStage = SDL_SHADERCROSS_SHADERSTAGE_VERTEX;
         } else if (SDL_strcasestr(filename, ".frag")) {
@@ -277,8 +277,7 @@ int main(int argc, char *argv[])
                 char *buffer = SDL_ShaderCross_TranspileMSLFromSPIRV(
                     fileData,
                     fileSize,
-                    entrypointName,
-                    shaderStage);
+                    entrypointName);
                 SDL_IOprintf(outputIO, "%s", buffer);
                 SDL_free(buffer);
                 break;
@@ -388,8 +387,7 @@ int main(int argc, char *argv[])
                 char *buffer = SDL_ShaderCross_TranspileMSLFromSPIRV(
                     spirv,
                     bytecodeSize,
-                    entrypointName,
-                    shaderStage);
+                    entrypointName);
                 SDL_IOprintf(outputIO, "%s", buffer);
                 SDL_free(spirv);
                 SDL_free(buffer);

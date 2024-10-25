@@ -947,8 +947,7 @@ static void *SDL_ShaderCross_INTERNAL_CompileFromSPIRV(
 void *SDL_ShaderCross_TranspileMSLFromSPIRV(
     const Uint8 *bytecode,
     size_t bytecodeSize,
-    const char *entrypoint,
-    SDL_ShaderCross_ShaderStage shaderStage)
+    const char *entrypoint)
 {
     SPIRVTranspileContext *context = SDL_ShaderCross_INTERNAL_TranspileFromSPIRV(
         SPVC_BACKEND_MSL,
