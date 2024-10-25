@@ -1,6 +1,6 @@
 # CMake Project for SDL_gpu_shadercross - Simple DirectMedia Layer Shader Cross Compiler
 # Written by @thatcosmonaut
-cmake_minimum_required(VERSION 3.8)
+cmake_minimum_required(VERSION 3.22)
 
 # Version
 set(MAJOR_VERSION "1")
@@ -10,13 +10,17 @@ set(SDL_REQUIRED_VERSION "3.1.3")
 
 project(SDL_gpu_shadercross LANGUAGES C VERSION "${MAJOR_VERSION}.${MINOR_VERSION}.${MICRO_VERSION}")
 
+include("${CMAKE_CURRENT_LIST_DIR}/cmake/PrivateSdlFunctions.cmake")
+include(CMakeDependentOption)
+
+find_package(SDL3 REQUIRED COMPONENTS SDL3-shared)
+
 # Options
 option(BUILD_STATIC "Build static library" ON)
 option(BUILD_CLI "Build command line executable" ON)
 option(ENABLE_WERROR "Enable Werror" OFF)
 option(ENABLE_INSTALL "Enable installation" OFF)
-
-include("${CMAKE_CURRENT_LIST_DIR}/cmake/PrivateSdlFunctions.cmake")
+cmake_dependent_option(BUILD_CLI_STATIC "Link CLI with static libraries" OFF "BUILD_CLI;BUILD_STATIC;TARGET SDL3::SDL3-static" OFF)
 
 sdl_calculate_derived_version_variables(${MAJOR_VERSION} ${MINOR_VERSION} ${MICRO_VERSION})
 
@@ -35,12 +39,10 @@ set(SOURCE_FILES
 	# Public Headers
 	include/SDL_gpu_shadercross.h
 	# Source Files
-    src/SDL_gpu_shadercross.c
-    src/spirv_cross_c.h
-    src/spirv.h
+	src/SDL_gpu_shadercross.c
+	src/spirv_cross_c.h
+	src/spirv.h
 )
-
-find_package(SDL3 REQUIRED COMPONENTS SDL3-shared)
 
 add_library(SDL_gpu_shadercross-shared SHARED ${SOURCE_FILES})
 add_library(SDL_gpu_shadercross::SDL_gpu_shadercross ALIAS SDL_gpu_shadercross-shared)
@@ -71,13 +73,13 @@ set_target_properties(SDL_gpu_shadercross-shared PROPERTIES OUTPUT_NAME "SDL_gpu
 )
 
 target_link_libraries(SDL_gpu_shadercross-shared PRIVATE
-    SDL3::SDL3-shared
+	SDL3::SDL3-shared
 )
 
 if(BUILD_STATIC)
 	find_package(SDL3 REQUIRED COMPONENTS Headers)
 
-    add_library(SDL_gpu_shadercross-static STATIC ${SOURCE_FILES})
+	add_library(SDL_gpu_shadercross-static STATIC ${SOURCE_FILES})
 	add_library(SDL_gpu_shadercross::SDL_gpu_shadercross-static ALIAS SDL_gpu_shadercross-static)
 	sdl_add_warning_options(SDL_gpu_shadercross-static WARNING_AS_ERROR ${ENABLE_WERROR})
 	target_compile_features(SDL_gpu_shadercross-static PRIVATE c_std_99)
@@ -86,12 +88,12 @@ if(BUILD_STATIC)
 		set_property(TARGET SDL_gpu_shadercross-static PROPERTY OUTPUT_NAME "SDL_gpu_shadercross")
 	endif()
 
-    # SDL_gpu_shadercross folders as includes, for other targets to consume
-    target_include_directories(SDL_gpu_shadercross-static PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
+	# SDL_gpu_shadercross folders as includes, for other targets to consume
+	target_include_directories(SDL_gpu_shadercross-static PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
 
-    target_link_libraries(SDL_gpu_shadercross-static PUBLIC
-        SDL3::Headers
-    )
+	target_link_libraries(SDL_gpu_shadercross-static PUBLIC
+		SDL3::Headers
+	)
 endif()
 
 if(NOT TARGET SDL_gpu_shadercross::SDL_gpu_shadercross)
@@ -103,10 +105,15 @@ if(NOT TARGET SDL_gpu_shadercross::SDL_gpu_shadercross)
 endif()
 
 if(BUILD_CLI)
-    add_executable(shadercross src/cli.c)
+	add_executable(shadercross src/cli.c)
 
-	target_link_libraries(shadercross PRIVATE SDL_gpu_shadercross::SDL_gpu_shadercross)
-	target_link_libraries(shadercross PRIVATE SDL3::SDL3)
+	if(BUILD_CLI_STATIC)
+		target_link_libraries(shadercross PRIVATE SDL_gpu_shadercross::SDL_gpu_shadercross-static)
+		target_link_libraries(shadercross PRIVATE SDL3::SDL3-static)
+	else()
+		target_link_libraries(shadercross PRIVATE SDL_gpu_shadercross::SDL_gpu_shadercross)
+		target_link_libraries(shadercross PRIVATE SDL3::SDL3)
+	endif()
 endif()
 
 if(ENABLE_INSTALL)
@@ -186,5 +193,4 @@ if(ENABLE_INSTALL)
 		DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/licenses/${PROJECT_NAME}"
 		COMPONENT library
 	)
-
 endif()
