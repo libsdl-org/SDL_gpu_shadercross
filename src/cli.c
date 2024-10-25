@@ -26,7 +26,7 @@
 void print_help()
 {
     int column_width = 32;
-    SDL_Log("%s", "Usage: shadercross <inputs> [options]");
+    SDL_Log("%s", "Usage: shadercross <input> [options]");
     SDL_Log("%s", "Required options:\n");
     SDL_Log("  %-*s %s", column_width, "-s | --source <value>", "Source language format. May be inferred from the filename. Values: [SPIRV, HLSL]");
     SDL_Log("  %-*s %s", column_width, "-d | --dest <value>", "Destination format. May be inferred from the filename. Values: [DXBC, DXIL, MSL, SPIRV]");
@@ -38,17 +38,6 @@ void print_help()
 
 int main(int argc, char *argv[])
 {
-    if (argc < 2)
-    {
-        print_help();
-        return 1;
-    }
-
-    if (!SDL_ShaderCross_Init())
-    {
-        SDL_LogError(SDL_LOG_CATEGORY_GPU, "%s", "Failed to initialize shadercross!");
-        return 1;
-    }
 
     bool sourceValid = false;
     bool destinationValid = false;
@@ -61,18 +50,22 @@ int main(int argc, char *argv[])
     char *entrypointName = "main";
     int shaderModel = 0;
 
-    char *filename = argv[1];
-    size_t fileSize;
-    void *fileData = SDL_LoadFile(filename, &fileSize);
-    if (fileData == NULL) {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%s", "Invalid file!");
-        return 1;
-    }
+    char *filename = NULL;
+    size_t fileSize = 0;
+    void *fileData = NULL;
 
-    for (int i = 2; i < argc; i += 1) {
+    for (int i = 1; i < argc; i += 1) {
         char *arg = argv[i];
 
-        if (SDL_strcmp(arg, "-s") == 0 || SDL_strcmp(arg, "--source") == 0) {
+        if (SDL_strcmp(arg, "-h") == 0 || SDL_strcmp(arg, "--help") == 0) {
+            print_help();
+            return 0;
+        } else if (SDL_strcmp(arg, "-s") == 0 || SDL_strcmp(arg, "--source") == 0) {
+            if (i + 1 >= argc) {
+                SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%s requires an argument", arg);
+                print_help();
+                return 1;
+            }
             i += 1;
             if (SDL_strcasecmp(argv[i], "spirv") == 0) {
                 spirvSource = true;
@@ -85,9 +78,12 @@ int main(int argc, char *argv[])
                 print_help();
                 return 1;
             }
-        }
-
-        if (SDL_strcmp(arg, "-d") == 0 || SDL_strcmp(arg, "--dest") == 0) {
+        } else if (SDL_strcmp(arg, "-d") == 0 || SDL_strcmp(arg, "--dest") == 0) {
+            if (i + 1 >= argc) {
+                SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%s requires an argument", arg);
+                print_help();
+                return 1;
+            }
             i += 1;
             if (SDL_strcasecmp(argv[i], "DXBC") == 0) {
                 destinationFormat = SDL_GPU_SHADERFORMAT_DXBC;
@@ -106,10 +102,13 @@ int main(int argc, char *argv[])
                 print_help();
                 return 1;
             }
-        }
-
-        if (SDL_strcmp(arg, "-t") == 0 || SDL_strcmp(arg, "--stage") == 0) {
-            i += i;
+        } else if (SDL_strcmp(arg, "-t") == 0 || SDL_strcmp(arg, "--stage") == 0) {
+            if (i + 1 >= argc) {
+                SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%s requires an argument", arg);
+                print_help();
+                return 1;
+            }
+            i += 1;
             if (SDL_strcasecmp(argv[i], "vertex") == 0) {
                 shaderStage = SDL_SHADERCROSS_SHADERSTAGE_VERTEX;
                 stageValid = true;
@@ -124,22 +123,51 @@ int main(int argc, char *argv[])
                 print_help();
                 return 1;
             }
-        }
-
-        if (SDL_strcmp(arg, "-e") == 0 || SDL_strcmp(arg, "--entrypoint") == 0) {
+        } else if (SDL_strcmp(arg, "-e") == 0 || SDL_strcmp(arg, "--entrypoint") == 0) {
+            if (i + 1 >= argc) {
+                SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%s requires an argument", arg);
+                print_help();
+                return 1;
+            }
             i += 1;
             entrypointName = argv[i];
-        }
-
-        if (SDL_strcmp(arg, "-m") == 0 || SDL_strcmp(arg, "--model") == 0) {
+        } else if (SDL_strcmp(arg, "-m") == 0 || SDL_strcmp(arg, "--model") == 0) {
+            if (i + 1 >= argc) {
+                SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%s requires an argument", arg);
+                print_help();
+                return 1;
+            }
             i += 1;
             shaderModel = SDL_atoi(argv[i]);
-        }
-
-        if (SDL_strcmp(arg, "-o") == 0 || SDL_strcmp(arg, "--output") == 0) {
+        } else if (SDL_strcmp(arg, "-o") == 0 || SDL_strcmp(arg, "--output") == 0) {
+            if (i + 1 >= argc) {
+                SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%s requires an argument", arg);
+                print_help();
+                return 1;
+            }
             i += 1;
             outputFilename = argv[i];
+        } else if (!filename) {
+            filename = arg;
+        } else {
+            SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%s: Unknown argument", argv[0]);
+            print_help(1);
         }
+    }
+    if (!filename) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%s: missing input path", argv[0]);
+        return 1;
+    }
+    fileData = SDL_LoadFile(filename, &fileSize);
+    if (fileData == NULL) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%s", "Invalid file");
+        return 1;
+    }
+
+    if (!SDL_ShaderCross_Init())
+    {
+        SDL_LogError(SDL_LOG_CATEGORY_GPU, "%s", "Failed to initialize shadercross!");
+        return 1;
     }
 
     if (!sourceValid) {
