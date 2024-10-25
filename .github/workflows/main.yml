@@ -15,10 +15,10 @@ jobs:
       fail-fast: false
       matrix:
         platform:
-          - { name: Windows (MSVC),       os: windows-2019, shell: sh, msvc: true }
-          - { name: Windows (mingw64),    os: windows-latest, shell: 'msys2 {0}', msystem: mingw64, msys-env: mingw-w64-x86_64 }
-          - { name: Linux,                os: ubuntu-20.04,   shell: sh }
-          - { name: Macos,                os: macos-latest,   shell: sh }
+          - { name: Windows (MSVC),       os: windows-2019, shell: sh, msvc: true, artifact: 'SDL_gpu_shadercross-VC-x64' }
+          - { name: Windows (mingw64),    os: windows-latest, shell: 'msys2 {0}', msystem: mingw64, msys-env: mingw-w64-x86_64, artifact: 'SDL_gpu_shadercross-mingw64' }
+          - { name: Linux,                os: ubuntu-20.04,   shell: sh, artifact: 'SDL_gpu_shadercross-linux-x64' }
+          - { name: Macos,                os: macos-latest,   shell: sh, artifact: 'SDL_gpu_shadercross-macos-x64' }
 
 
     steps:
@@ -52,9 +52,32 @@ jobs:
 
       - name: Configure (CMake)
         run: |
-          cmake -S . -B build -GNinja -DBUILD_STATIC=ON -DBUILD_CLI=ON -DENABLE_WERROR=ON -DCMAKE_POLICY_DEFAULT_CMP0074=NEW
+          cmake -S . -B build -GNinja \
+            -DBUILD_STATIC=ON \
+            -DBUILD_CLI=ON \
+            -DENABLE_WERROR=ON \
+            -DENABLE_INSTALL=ON \
+            -DENABLE_INSTALL_CPACK=ON \
+            -DCMAKE_INSTALL_PREFIX=prefix
 
       - name: Build (CMake)
         id: build
         run: |
           cmake --build build --config Release --parallel --verbose
+
+      - name: Install (CMake)
+        if: ${{ always() && steps.build.outcome == 'success' }}
+        run: |
+          cmake --install build/ --config Release
+      - name: Package (CPack)
+        id: package
+        if: ${{ always() && steps.build.outcome == 'success' }}
+        run: |
+          cmake --build build/ --target package
+
+      - uses: actions/upload-artifact@v4
+        if: ${{ always() && steps.package.outcome == 'success' }}
+        with:
+          if-no-files-found: error
+          name: ${{ matrix.platform.artifact }}
+          path: build/dist/SDL*

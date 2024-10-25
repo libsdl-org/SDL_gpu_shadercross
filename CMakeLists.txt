@@ -10,17 +10,20 @@ set(SDL_REQUIRED_VERSION "3.1.3")
 
 project(SDL_gpu_shadercross LANGUAGES C VERSION "${MAJOR_VERSION}.${MINOR_VERSION}.${MICRO_VERSION}")
 
-include("${CMAKE_CURRENT_LIST_DIR}/cmake/PrivateSdlFunctions.cmake")
 include(CMakeDependentOption)
+include("${CMAKE_CURRENT_LIST_DIR}/cmake/PrivateSdlFunctions.cmake")
+include("${CMAKE_CURRENT_LIST_DIR}/cmake/sdlcpu.cmake")
+include("${CMAKE_CURRENT_LIST_DIR}/cmake/sdlplatform.cmake")
 
 find_package(SDL3 REQUIRED COMPONENTS SDL3-shared)
 
 # Options
 option(BUILD_STATIC "Build static library" ON)
 option(BUILD_CLI "Build command line executable" ON)
+cmake_dependent_option(BUILD_CLI_STATIC "Link CLI with static libraries" OFF "BUILD_CLI;BUILD_STATIC;TARGET SDL3::SDL3-static" OFF)
 option(ENABLE_WERROR "Enable Werror" OFF)
 option(ENABLE_INSTALL "Enable installation" OFF)
-cmake_dependent_option(BUILD_CLI_STATIC "Link CLI with static libraries" OFF "BUILD_CLI;BUILD_STATIC;TARGET SDL3::SDL3-static" OFF)
+cmake_dependent_option(ENABLE_INSTALL_CPACK "Enable CPack installation" OFF "ENABLE_INSTALL" OFF)
 
 sdl_calculate_derived_version_variables(${MAJOR_VERSION} ${MINOR_VERSION} ${MICRO_VERSION})
 
@@ -117,6 +120,7 @@ if(BUILD_CLI)
 endif()
 
 if(ENABLE_INSTALL)
+	include(GNUInstallDirs)
 	if(WIN32 AND NOT MINGW)
 		set(INSTALL_CMAKEDIR_ROOT_DEFAULT "cmake")
 	else()
@@ -131,7 +135,6 @@ if(ENABLE_INSTALL)
 		set(SDLGPUSHADERCROSS_INSTALL_CMAKEDIR "${SDLGPUSHADERCROSS_INSTALL_CMAKEDIR_ROOT}/SDL_gpu_shadercross")
 	endif()
 
-	include(GNUInstallDirs)
 	if(TARGET SDL_gpu_shadercross-shared)
 		install(TARGETS SDL_gpu_shadercross-shared EXPORT SDL_gpu_shadercross-shared-export
 			ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}" COMPONENT devel
@@ -161,6 +164,9 @@ if(ENABLE_INSTALL)
 		FILES "${CMAKE_CURRENT_SOURCE_DIR}/include/SDL_gpu_shadercross.h"
 		DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}" COMPONENT DEVEL
 	)
+	if(BUILD_CLI)
+		install(TARGETS shadercross RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")
+	endif()
 
 	include(CMakePackageConfigHelpers)
 	configure_package_config_file(cmake/SDL_gpu_shadercrossConfig.cmake.in SDL_gpu_shadercrossConfig.cmake
@@ -193,4 +199,19 @@ if(ENABLE_INSTALL)
 		DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/licenses/${PROJECT_NAME}"
 		COMPONENT library
 	)
+	if(ENABLE_INSTALL_CPACK)
+		SDL_DetectTargetCPUArchitectures(SDL_CPU_NAMES)
+		SDL_DetectCMakePlatform()
+		if(MSVC)
+			set(CPACK_GENERATOR "ZIP")
+		else()
+			set(CPACK_GENERATOR "TGZ")
+		endif()
+		configure_file(cmake/CPackProjectConfig.cmake.in CPackProjectConfig.cmake @ONLY)
+		set(CPACK_PROJECT_CONFIG_FILE "${PROJECT_BINARY_DIR}/CPackProjectConfig.cmake")
+		# CPACK_SOURCE_PACKAGE_FILE_NAME must end with "-src" (so we can block creating a source archive)
+		set(CPACK_SOURCE_PACKAGE_FILE_NAME "SDL_gpu_shadercross-${PROJECT_VERSION}-src")
+		set(CPACK_PACKAGE_DIRECTORY "${CMAKE_BINARY_DIR}/dist")
+		include(CPack)
+	endif()
 endif()
