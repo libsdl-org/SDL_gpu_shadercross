@@ -176,6 +176,7 @@ int main(int argc, char *argv[])
     }
     if (!filename) {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%s: missing input path", argv[0]);
+        print_help();
         return 1;
     }
     fileData = SDL_LoadFile(filename, &fileSize);
