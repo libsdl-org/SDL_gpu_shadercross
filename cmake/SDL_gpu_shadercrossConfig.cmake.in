@@ -1,0 +1,45 @@
+# sdl_gpu_shadercross cmake project-config input for CMakeLists.txt script
+
+include(FeatureSummary)
+set_package_properties(SDL_gpu_shadercross PROPERTIES
+    URL "https://github.com/libsdl-org/SDL_gpu_shadercross/"
+    DESCRIPTION "Support support SPIR-V and HLSL on various backends"
+)
+
+set(SDL_gpu_shadercross_FOUND ON)
+
+set(SDL_GPU_SHADERCROSS_REQUIRED_VERSION  @SDL_REQUIRED_VERSION@)
+
+set(SDL_gpu_shadercross_SDL_gpu_shadercross-shared_FOUND FALSE)
+if(EXISTS "${CMAKE_CURRENT_LIST_DIR}/SDL_gpu_shadercross-shared-targets.cmake")
+    include("${CMAKE_CURRENT_LIST_DIR}/SDL_gpu_shadercross-shared.cmake")
+    set(SDL_gpu_shadercross_SDL_gpu_shadercross-shared_FOUND TRUE)
+endif()
+
+set(SDL_gpu_shadercross_SDL_gpu_shadercross-static FALSE)
+if(EXISTS "${CMAKE_CURRENT_LIST_DIR}/SDL_gpu_shadercross-static-targets.cmake")
+    include("${CMAKE_CURRENT_LIST_DIR}/SDL_gpu_shadercross-static.cmake")
+    set(SDL_gpu_shadercross_SDL_gpu_shadercross-static_FOUND TRUE)
+endif()
+
+function(_sdl_create_target_alias_compat NEW_TARGET TARGET)
+    if(CMAKE_VERSION VERSION_LESS "3.18")
+        # Aliasing local targets is not supported on CMake < 3.18, so make it global.
+        add_library(${NEW_TARGET} INTERFACE IMPORTED)
+        set_target_properties(${NEW_TARGET} PROPERTIES INTERFACE_LINK_LIBRARIES "${TARGET}")
+    else()
+        add_library(${NEW_TARGET} ALIAS ${TARGET})
+    endif()
+endfunction()
+
+# Make sure SDL_gpu_shadercross::SDL_gpu_shadercross always exists
+if(NOT TARGET SDL_gpu_shadercross::SDL_gpu_shadercross)
+    if(TARGET SDL_gpu_shadercross::SDL_gpu_shadercross)
+        _sdl_create_target_alias_compat(SDL_gpu_shadercross::SDL_gpu_shadercross SDL_gpu_shadercross::SDL_gpu_shadercross-shared)
+    elseif(TARGET SDL_gpu_shadercross::SDL_gpu_shadercross-static)
+        _sdl_create_target_alias_compat(SDL_gpu_shadercross::SDL_gpu_shadercross SDL_gpu_shadercross::SDL_gpu_shadercross-static)
+    endif()
+endif()
+
+@PACKAGE_INIT@
+check_required_components(SDL_gpu_shadercross)

@@ -661,7 +661,7 @@ static void *SDL_ShaderCross_INTERNAL_CreateShaderFromHLSL(SDL_GPUDevice *device
     return NULL;
 }
 
-SDL_GPU_SHADERCROSS_EXPORT SDL_GPUShader *SDL_ShaderCross_CompileGraphicsShaderFromHLSL(
+SDL_GPUShader *SDL_ShaderCross_CompileGraphicsShaderFromHLSL(
     SDL_GPUDevice *device,
     const SDL_GPUShaderCreateInfo *createInfo,
     const char *hlslSource,
@@ -670,7 +670,7 @@ SDL_GPU_SHADERCROSS_EXPORT SDL_GPUShader *SDL_ShaderCross_CompileGraphicsShaderF
     return (SDL_GPUShader *)SDL_ShaderCross_INTERNAL_CreateShaderFromHLSL(device, createInfo, hlslSource, shaderProfile);
 }
 
-SDL_GPU_SHADERCROSS_EXPORT SDL_GPUComputePipeline *SDL_ShaderCross_CompileComputePipelineFromHLSL(
+SDL_GPUComputePipeline *SDL_ShaderCross_CompileComputePipelineFromHLSL(
     SDL_GPUDevice *device,
     const SDL_GPUComputePipelineCreateInfo *createInfo,
     const char *hlslSource,
@@ -1061,14 +1061,14 @@ static void *SDL_ShaderCross_INTERNAL_CreateShaderFromSPIRV(
     return compiledResult;
 }
 
-SDL_GPU_SHADERCROSS_EXPORT SDL_GPUShader *SDL_ShaderCross_CompileGraphicsShaderFromSPIRV(
+SDL_GPUShader *SDL_ShaderCross_CompileGraphicsShaderFromSPIRV(
     SDL_GPUDevice *device,
     const SDL_GPUShaderCreateInfo *createInfo)
 {
     return (SDL_GPUShader *)SDL_ShaderCross_INTERNAL_CreateShaderFromSPIRV(device, createInfo, false);
 }
 
-SDL_GPU_SHADERCROSS_EXPORT SDL_GPUComputePipeline *SDL_ShaderCross_CompileComputePipelineFromSPIRV(
+SDL_GPUComputePipeline *SDL_ShaderCross_CompileComputePipelineFromSPIRV(
     SDL_GPUDevice *device,
     const SDL_GPUComputePipelineCreateInfo *createInfo)
 {
@@ -1077,7 +1077,7 @@ SDL_GPU_SHADERCROSS_EXPORT SDL_GPUComputePipeline *SDL_ShaderCross_CompileComput
 
 #endif /* SDL_GPU_SHADERCROSS_SPIRVCROSS */
 
-SDL_GPU_SHADERCROSS_EXPORT bool SDL_ShaderCross_Init(void)
+bool SDL_ShaderCross_Init(void)
 {
     dxcompiler_dll = SDL_LoadObject(DXCOMPILER_DLL);
     if (dxcompiler_dll != NULL) {
@@ -1154,7 +1154,7 @@ SDL_GPU_SHADERCROSS_EXPORT bool SDL_ShaderCross_Init(void)
     return true;
 }
 
-SDL_GPU_SHADERCROSS_EXPORT void SDL_ShaderCross_Quit(void)
+void SDL_ShaderCross_Quit(void)
 {
 #ifdef SDL_GPU_SHADERCROSS_SPIRV
 #ifndef SDL_GPU_SHADERCROSS_STATIC
@@ -1196,7 +1196,7 @@ SDL_GPU_SHADERCROSS_EXPORT void SDL_ShaderCross_Quit(void)
 
 #ifdef SDL_GPU_SHADERCROSS_SPIRVCROSS
 
-SDL_GPU_SHADERCROSS_EXPORT SDL_GPUShaderFormat SDL_ShaderCross_GetSPIRVShaderFormats(void)
+SDL_GPUShaderFormat SDL_ShaderCross_GetSPIRVShaderFormats(void)
 {
     /* SPIRV can always be output as-is with no preprocessing */
     SDL_GPUShaderFormat supportedFormats = SDL_GPU_SHADERFORMAT_SPIRV;
@@ -1231,7 +1231,7 @@ SDL_GPU_SHADERCROSS_EXPORT SDL_GPUShaderFormat SDL_ShaderCross_GetSPIRVShaderFor
 
 #if SDL_GPU_SHADERCROSS_HLSL
 
-SDL_GPU_SHADERCROSS_EXPORT SDL_GPUShaderFormat SDL_ShaderCross_GetHLSLShaderFormats(void)
+SDL_GPUShaderFormat SDL_ShaderCross_GetHLSLShaderFormats(void)
 {
     SDL_GPUShaderFormat supportedFormats = 0;
 

@@ -1,0 +1,60 @@
+name: Build
+
+on: [push, pull_request]
+
+jobs:
+  Build:
+    name: ${{ matrix.platform.name }}
+    runs-on: ${{ matrix.platform.os }}
+
+    defaults:
+      run:
+        shell: ${{ matrix.platform.shell }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - { name: Windows (MSVC),       os: windows-2019, shell: sh, msvc: true }
+          - { name: Windows (mingw64),    os: windows-latest, shell: 'msys2 {0}', msystem: mingw64, msys-env: mingw-w64-x86_64 }
+          - { name: Linux,                os: ubuntu-20.04,   shell: sh }
+          - { name: Macos,                os: macos-latest,   shell: sh }
+
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Set up Ninja
+        uses: ./.github/actions/setup-ninja
+        if: ${{ !contains(matrix.platform.shell, 'msys2') }}
+      - uses: ilammy/msvc-dev-cmd@v1
+        if: ${{ matrix.platform.msvc }}
+        with:
+          arch: x64
+      - name: Set up MSYS2
+        if: ${{ matrix.platform.shell == 'msys2 {0}' }}
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: ${{ matrix.platform.msystem }}
+          install: >-
+            ${{ matrix.platform.msys-env }}-cmake
+            ${{ matrix.platform.msys-env }}-gcc
+            ${{ matrix.platform.msys-env }}-ninja
+      - name: Set up SDL
+        id: sdl
+        uses: libsdl-org/setup-sdl@main
+        with:
+          cmake-generator: Ninja
+          version: 3-head
+          sdl-test: true
+          shell: ${{ matrix.platform.shell }}
+
+      - name: Configure (CMake)
+        run: |
+          cmake -S . -B build -GNinja -DBUILD_STATIC=ON -DBUILD_CLI=ON -DENABLE_WERROR=OFF -DCMAKE_POLICY_DEFAULT_CMP0074=NEW
+
+      - name: Build (CMake)
+        id: build
+        run: |
+          cmake --build build --config Release --parallel --verbose
