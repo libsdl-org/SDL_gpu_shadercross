@@ -4,6 +4,7 @@ SDL3_gpu_shadercross_0.0.0 {
     SDL_ShaderCross_Quit;
     SDL_ShaderCross_GetSPIRVShaderFormats;
     SDL_ShaderCross_TranspileMSLFromSPIRV;
+    SDL_ShaderCross_TranspileHLSLFromSPIRV;
     SDL_ShaderCross_CompileDXBCFromSPIRV;
     SDL_ShaderCross_CompileDXILFromSPIRV;
     SDL_ShaderCross_CompileGraphicsShaderFromSPIRV;
