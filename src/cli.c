@@ -161,6 +161,7 @@ int main(int argc, char *argv[])
         } else {
             SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%s: Unknown argument: %s", argv[0], arg);
             print_help(1);
+            return 1;
         }
     }
     if (!filename) {
