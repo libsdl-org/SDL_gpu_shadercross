@@ -8,6 +8,8 @@ This library also provides a command line interface for offline translation of s
 
 For SPIRV translation, this library depends on SPIRV-Cross: https://github.com/KhronosGroup/SPIRV-Cross
 For compiling to DXIL, dxcompiler.dll and dxil.dll are required (or your platform's equivalent).
+These dependencies can be obtained in the Vulkan SDK: https://vulkan.lunarg.com/
+It is strongly recommended that you ship these dependencies along with your application.
 For compiling to DXBC, d3dcompiler_47 is shipped with Windows. Other platforms require vkd3d-utils.
 
 This library is under the zlib license, see LICENSE.txt for details.
