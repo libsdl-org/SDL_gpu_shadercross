@@ -748,36 +748,34 @@ static pfn_spvc_compiler_get_cleansed_entry_point_name SDL_spvc_compiler_get_cle
 #define SPVC_ERROR(func) \
     SDL_SetError(#func " failed: %s", SDL_spvc_context_get_last_error_string(context))
 
-// Returns a malloc'd CreateInfo struct.
-// It also malloc's the bytecode pointer and entrypoint string.
-static void *SDL_ShaderCross_INTERNAL_TranslateFromSPIRV(
-    SDL_GPUShaderFormat shaderFormat,
-    const void *originalCreateInfo,
-    bool isCompute
+typedef struct SPIRVTranspileContext {
+    spvc_context context;
+    const char *translated_source;
+    const char *cleansed_entrypoint;
+} SPIRVTranspileContext;
+
+static void SDL_ShaderCross_INTERNAL_DestroyTranspileContext(
+    SPIRVTranspileContext *context)
+{
+    SDL_spvc_context_destroy(context->context);
+    SDL_free(context);
+}
+
+static SPIRVTranspileContext *SDL_ShaderCross_INTERNAL_TranspileFromSPIRV(
+    spvc_backend backend,
+    unsigned shadermodel,
+    const Uint8 *code,
+    size_t codeSize,
+    const char *entrypoint
 ) {
-    const SDL_GPUShaderCreateInfo *createInfo;
     spvc_result result;
-    spvc_backend backend;
-    unsigned shadermodel;
     spvc_context context = NULL;
     spvc_parsed_ir ir = NULL;
     spvc_compiler compiler = NULL;
     spvc_compiler_options options = NULL;
+    SPIRVTranspileContext *transpileContext = NULL;
     const char *translated_source;
     const char *cleansed_entrypoint;
-
-    if (shaderFormat == SDL_GPU_SHADERFORMAT_DXBC) {
-        backend = SPVC_BACKEND_HLSL;
-        shadermodel = 50;
-    } else if (shaderFormat == SDL_GPU_SHADERFORMAT_DXIL) {
-        backend = SPVC_BACKEND_HLSL;
-        shadermodel = 60;
-    } else if (shaderFormat == SDL_GPU_SHADERFORMAT_MSL) {
-        backend = SPVC_BACKEND_MSL;
-    } else {
-        SDL_SetError("SDL_ShaderCross_INTERNAL_CreateShaderFromSPIRV: Unexpected SDL_GPUBackend");
-        return NULL;
-    }
 
     /* Create the SPIRV-Cross context */
     result = SDL_spvc_context_create(&context);
@@ -786,14 +784,8 @@ static void *SDL_ShaderCross_INTERNAL_TranslateFromSPIRV(
         return NULL;
     }
 
-    /* SDL_GPUShaderCreateInfo and SDL_GPUComputePipelineCreateInfo
-     * share the same struct layout for their first 3 members, which
-     * is all we need to transpile them!
-     */
-    createInfo = (const SDL_GPUShaderCreateInfo *)originalCreateInfo;
-
     /* Parse the SPIR-V into IR */
-    result = SDL_spvc_context_parse_spirv(context, (const SpvId *)createInfo->code, createInfo->code_size / sizeof(SpvId), &ir);
+    result = SDL_spvc_context_parse_spirv(context, (const SpvId *)code, codeSize / sizeof(SpvId), &ir);
     if (result < 0) {
         SPVC_ERROR(spvc_context_parse_spirv);
         SDL_spvc_context_destroy(context);
@@ -840,129 +832,116 @@ static void *SDL_ShaderCross_INTERNAL_TranslateFromSPIRV(
     /* Determine the "cleansed" entrypoint name (e.g. main -> main0 on MSL) */
     cleansed_entrypoint = SDL_spvc_compiler_get_cleansed_entry_point_name(
         compiler,
-        createInfo->entrypoint,
+        entrypoint,
         SDL_spvc_compiler_get_execution_model(compiler));
 
-    void *translatedCreateInfo = NULL;
+    transpileContext = SDL_malloc(sizeof(SPIRVTranspileContext));
+    transpileContext->context = context;
+    transpileContext->cleansed_entrypoint = cleansed_entrypoint;
+    transpileContext->translated_source = translated_source;
+    return transpileContext;
+}
+
+static void *SDL_ShaderCross_INTERNAL_CompileFromSPIRV(
+    SDL_GPUDevice *device,
+    SDL_GPUShaderFormat shaderFormat,
+    const void *originalCreateInfo,
+    bool isCompute
+) {
+    const SDL_GPUShaderCreateInfo *createInfo;
+    spvc_backend backend;
+    unsigned shadermodel = 0;
+
+    if (shaderFormat == SDL_GPU_SHADERFORMAT_DXBC) {
+        backend = SPVC_BACKEND_HLSL;
+        shadermodel = 50;
+    } else if (shaderFormat == SDL_GPU_SHADERFORMAT_DXIL) {
+        backend = SPVC_BACKEND_HLSL;
+        shadermodel = 60;
+    } else if (shaderFormat == SDL_GPU_SHADERFORMAT_MSL) {
+        backend = SPVC_BACKEND_MSL;
+    } else {
+        SDL_SetError("SDL_ShaderCross_INTERNAL_CreateShaderFromSPIRV: Unexpected SDL_GPUBackend");
+        return NULL;
+    }
+
+    /* SDL_GPUShaderCreateInfo and SDL_GPUComputePipelineCreateInfo
+     * share the same struct layout for their first 3 members, which
+     * is all we need to transpile them!
+     */
+    createInfo = (const SDL_GPUShaderCreateInfo *)originalCreateInfo;
+
+    SPIRVTranspileContext *transpileContext = SDL_ShaderCross_INTERNAL_TranspileFromSPIRV(
+        backend,
+        shadermodel,
+        createInfo->code,
+        createInfo->code_size,
+        createInfo->entrypoint);
+
+    void *shaderObject = NULL;
 
     /* Copy the original create info, but with the new source code */
     if (isCompute) {
-        SDL_GPUComputePipelineCreateInfo *newCreateInfo = SDL_malloc(sizeof(SDL_GPUComputePipelineCreateInfo));
-        SDL_memcpy(newCreateInfo, createInfo, sizeof(SDL_GPUComputePipelineCreateInfo));
+        SDL_GPUComputePipelineCreateInfo newCreateInfo;
+        newCreateInfo = *(const SDL_GPUComputePipelineCreateInfo *)createInfo;
 
-        newCreateInfo->format = shaderFormat;
-
-        size_t cleansed_entrypoint_length = SDL_utf8strlen(cleansed_entrypoint) + 1;
-        newCreateInfo->entrypoint = SDL_malloc(cleansed_entrypoint_length);
-        SDL_utf8strlcpy((char *)newCreateInfo->entrypoint, cleansed_entrypoint, cleansed_entrypoint_length);
+        newCreateInfo.entrypoint = transpileContext->cleansed_entrypoint;
+        newCreateInfo.format = shaderFormat;
 
         if (shaderFormat == SDL_GPU_SHADERFORMAT_DXBC) {
-            newCreateInfo->code = SDL_ShaderCross_CompileDXBCFromHLSL(
-                translated_source,
-                cleansed_entrypoint,
+            newCreateInfo.code = SDL_ShaderCross_CompileDXBCFromHLSL(
+                transpileContext->translated_source,
+                transpileContext->cleansed_entrypoint,
                 (shadermodel == 50) ? "cs_5_0" : "cs_6_0",
-                &newCreateInfo->code_size);
+                &newCreateInfo.code_size);
         } else if (shaderFormat == SDL_GPU_SHADERFORMAT_DXIL) {
-            newCreateInfo->code = SDL_ShaderCross_CompileDXILFromHLSL(
-                translated_source,
-                cleansed_entrypoint,
+            newCreateInfo.code = SDL_ShaderCross_CompileDXILFromHLSL(
+                transpileContext->translated_source,
+                transpileContext->cleansed_entrypoint,
                 (shadermodel == 50) ? "cs_5_0" : "cs_6_0",
-                &newCreateInfo->code_size);
+                &newCreateInfo.code_size);
         } else { // MSL
-            newCreateInfo->code_size = SDL_strlen(translated_source) + 1;
-            newCreateInfo->code = SDL_malloc(newCreateInfo->code_size);
-            SDL_strlcpy((char *)newCreateInfo->code, translated_source, newCreateInfo->code_size);
+            newCreateInfo.code = (const Uint8 *)transpileContext->translated_source;
+            newCreateInfo.code_size = SDL_strlen(transpileContext->translated_source) + 1;
         }
 
-        translatedCreateInfo = newCreateInfo;
+        shaderObject = SDL_CreateGPUComputePipeline(device, &newCreateInfo);
     } else {
-        SDL_GPUShaderCreateInfo *newCreateInfo = SDL_malloc(sizeof(SDL_GPUShaderCreateInfo));
-        SDL_memcpy(newCreateInfo, createInfo, sizeof(SDL_GPUShaderCreateInfo));
+        SDL_GPUShaderCreateInfo newCreateInfo;
+        newCreateInfo = *createInfo;
 
-        newCreateInfo->format = shaderFormat;
-
-        size_t cleansed_entrypoint_length = SDL_utf8strlen(cleansed_entrypoint) + 1;
-        newCreateInfo->entrypoint = SDL_malloc(cleansed_entrypoint_length);
-        SDL_utf8strlcpy((char *)newCreateInfo->entrypoint, cleansed_entrypoint, cleansed_entrypoint_length);
+        newCreateInfo.format = shaderFormat;
+        newCreateInfo.entrypoint = transpileContext->cleansed_entrypoint;
 
         const char *profile;
-        if (newCreateInfo->stage == SDL_GPU_SHADERSTAGE_VERTEX) {
+        if (newCreateInfo.stage == SDL_GPU_SHADERSTAGE_VERTEX) {
             profile = (shadermodel == 50) ? "vs_5_0" : "vs_6_0";
         } else {
             profile = (shadermodel == 50) ? "ps_5_0" : "ps_6_0";
         }
 
         if (shaderFormat == SDL_GPU_SHADERFORMAT_DXBC) {
-            newCreateInfo->code = SDL_ShaderCross_CompileDXBCFromHLSL(
-                translated_source,
-                cleansed_entrypoint,
+            newCreateInfo.code = SDL_ShaderCross_CompileDXBCFromHLSL(
+                transpileContext->translated_source,
+                transpileContext->cleansed_entrypoint,
                 profile,
-                &newCreateInfo->code_size);
+                &newCreateInfo.code_size);
         } else if (shaderFormat == SDL_GPU_SHADERFORMAT_DXIL) {
-            newCreateInfo->code = SDL_ShaderCross_CompileDXILFromHLSL(
-                translated_source,
-                cleansed_entrypoint,
+            newCreateInfo.code = SDL_ShaderCross_CompileDXILFromHLSL(
+                transpileContext->translated_source,
+                transpileContext->cleansed_entrypoint,
                 profile,
-                &newCreateInfo->code_size);
+                &newCreateInfo.code_size);
         } else { // MSL
-            newCreateInfo->code_size = SDL_strlen(translated_source) + 1;
-            newCreateInfo->code = SDL_malloc(newCreateInfo->code_size);
-            SDL_strlcpy((char *)newCreateInfo->code, translated_source, newCreateInfo->code_size);
+            newCreateInfo.code = (const Uint8 *)transpileContext->translated_source;
+            newCreateInfo.code_size = SDL_strlen(transpileContext->translated_source) + 1;
         }
 
-        translatedCreateInfo = newCreateInfo;
+        shaderObject = SDL_CreateGPUShader(device, &newCreateInfo);
     }
 
-    SDL_spvc_context_destroy(context);
-    return translatedCreateInfo;
-}
-
-static void *SDL_ShaderCross_INTERNAL_CompileFromSPIRV(
-    SDL_GPUShaderFormat format,
-    const Uint8 *bytecode,
-    size_t bytecodeSize,
-    const char *entrypoint,
-    SDL_ShaderCross_ShaderStage shaderStage,
-    size_t *size)
-{
-    if (shaderStage == SDL_SHADERCROSS_SHADERSTAGE_COMPUTE) {
-        SDL_GPUComputePipelineCreateInfo createInfo;
-        createInfo.code = bytecode;
-        createInfo.code_size = bytecodeSize;
-        createInfo.entrypoint = entrypoint;
-        createInfo.format = SDL_GPU_SHADERFORMAT_SPIRV;
-
-        SDL_GPUComputePipelineCreateInfo *translatedCreateInfo = (SDL_GPUComputePipelineCreateInfo *)SDL_ShaderCross_INTERNAL_TranslateFromSPIRV(
-            format,
-            &createInfo,
-            true);
-
-        void *result = (void *)translatedCreateInfo->code;
-        *size = translatedCreateInfo->code_size;
-        SDL_free((void *)translatedCreateInfo->entrypoint);
-        SDL_free(translatedCreateInfo);
-
-        return result;
-    } else {
-        SDL_GPUShaderCreateInfo createInfo;
-        createInfo.code = bytecode;
-        createInfo.code_size = bytecodeSize;
-        createInfo.entrypoint = entrypoint;
-        createInfo.format = SDL_GPU_SHADERFORMAT_SPIRV;
-        createInfo.stage = (SDL_GPUShaderStage)shaderStage;
-
-        SDL_GPUShaderCreateInfo *translatedCreateInfo = (SDL_GPUShaderCreateInfo *)SDL_ShaderCross_INTERNAL_TranslateFromSPIRV(
-            format,
-            &createInfo,
-            false);
-
-        void *result = (void *)translatedCreateInfo->code;
-        *size = translatedCreateInfo->code_size;
-        SDL_free((void *)translatedCreateInfo->entrypoint);
-        SDL_free(translatedCreateInfo);
-
-        return result;
-    }
+    SDL_ShaderCross_INTERNAL_DestroyTranspileContext(transpileContext);
+    return shaderObject;
 }
 
 void *SDL_ShaderCross_TranspileMSLFromSPIRV(
@@ -971,14 +950,53 @@ void *SDL_ShaderCross_TranspileMSLFromSPIRV(
     const char *entrypoint,
     SDL_ShaderCross_ShaderStage shaderStage)
 {
-    size_t size;
-    return SDL_ShaderCross_INTERNAL_CompileFromSPIRV(
-        SDL_GPU_SHADERFORMAT_MSL,
+    SPIRVTranspileContext *context = SDL_ShaderCross_INTERNAL_TranspileFromSPIRV(
+        SPVC_BACKEND_MSL,
+        0,
         bytecode,
         bytecodeSize,
-        entrypoint,
-        shaderStage,
-        &size);
+        entrypoint
+    );
+
+    size_t length = SDL_strlen(context->translated_source) + 1;
+    char *result = SDL_malloc(length);
+    SDL_strlcpy(result, context->translated_source, length);
+
+    SDL_ShaderCross_INTERNAL_DestroyTranspileContext(context);
+    return result;
+}
+
+void *SDL_ShaderCross_TranspileHLSLFromSPIRV(
+    const Uint8 *bytecode,
+    size_t bytecodeSize,
+    const char *entrypoint,
+    const char *shaderProfile)
+{
+    unsigned int shadermodel = 0;
+
+    if (SDL_strstr(shaderProfile, "5_0")) {
+        shadermodel = 50;
+    } else if (SDL_strstr(shaderProfile, "6_0")) {
+        shadermodel = 60;
+    } else {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%s", "Invalid shader profile!");
+        return NULL;
+    }
+
+    SPIRVTranspileContext *context = SDL_ShaderCross_INTERNAL_TranspileFromSPIRV(
+        SPVC_BACKEND_HLSL,
+        shadermodel,
+        bytecode,
+        bytecodeSize,
+        entrypoint
+    );
+
+    size_t length = SDL_strlen(context->translated_source) + 1;
+    char *result = SDL_malloc(length);
+    SDL_strlcpy(result, context->translated_source, length);
+
+    SDL_ShaderCross_INTERNAL_DestroyTranspileContext(context);
+    return result;
 }
 
 void *SDL_ShaderCross_CompileDXBCFromSPIRV(
@@ -988,13 +1006,30 @@ void *SDL_ShaderCross_CompileDXBCFromSPIRV(
     SDL_ShaderCross_ShaderStage shaderStage,
     size_t *size)
 {
-    return SDL_ShaderCross_INTERNAL_CompileFromSPIRV(
-        SDL_GPU_SHADERFORMAT_DXBC,
+    SPIRVTranspileContext *context = SDL_ShaderCross_INTERNAL_TranspileFromSPIRV(
+        SPVC_BACKEND_HLSL,
+        50,
         bytecode,
         bytecodeSize,
-        entrypoint,
-        shaderStage,
+        entrypoint);
+
+    const char *profile;
+    if (shaderStage == SDL_SHADERCROSS_SHADERSTAGE_VERTEX) {
+        profile = "vs_5_0";
+    } else if (shaderStage == SDL_SHADERCROSS_SHADERSTAGE_FRAGMENT) {
+        profile = "ps_5_0";
+    } else { // compute
+        profile = "cs_5_0";
+    }
+
+    void *result = SDL_ShaderCross_CompileDXBCFromHLSL(
+        context->translated_source,
+        context->cleansed_entrypoint,
+        profile,
         size);
+
+    SDL_ShaderCross_INTERNAL_DestroyTranspileContext(context);
+    return result;
 }
 
 void *SDL_ShaderCross_CompileDXILFromSPIRV(
@@ -1004,13 +1039,30 @@ void *SDL_ShaderCross_CompileDXILFromSPIRV(
     SDL_ShaderCross_ShaderStage shaderStage,
     size_t *size)
 {
-    return SDL_ShaderCross_INTERNAL_CompileFromSPIRV(
-        SDL_GPU_SHADERFORMAT_DXIL,
+    SPIRVTranspileContext *context = SDL_ShaderCross_INTERNAL_TranspileFromSPIRV(
+        SPVC_BACKEND_HLSL,
+        60,
         bytecode,
         bytecodeSize,
-        entrypoint,
-        shaderStage,
+        entrypoint);
+
+    const char *profile;
+    if (shaderStage == SDL_SHADERCROSS_SHADERSTAGE_VERTEX) {
+        profile = "vs_6_0";
+    } else if (shaderStage == SDL_SHADERCROSS_SHADERSTAGE_FRAGMENT) {
+        profile = "ps_6_0";
+    } else { // compute
+        profile = "cs_6_0";
+    }
+
+    void *result = SDL_ShaderCross_CompileDXILFromHLSL(
+        context->translated_source,
+        context->cleansed_entrypoint,
+        profile,
         size);
+
+    SDL_ShaderCross_INTERNAL_DestroyTranspileContext(context);
+    return result;
 }
 
 static void *SDL_ShaderCross_INTERNAL_CreateShaderFromSPIRV(
@@ -1019,7 +1071,6 @@ static void *SDL_ShaderCross_INTERNAL_CreateShaderFromSPIRV(
     bool isCompute)
 {
     SDL_GPUShaderFormat format;
-    void *compiledResult;
 
     SDL_GPUShaderFormat shader_formats = SDL_GetGPUShaderFormats(device);
 
@@ -1040,26 +1091,11 @@ static void *SDL_ShaderCross_INTERNAL_CreateShaderFromSPIRV(
         return NULL;
     }
 
-    void *translatedCreateInfo = SDL_ShaderCross_INTERNAL_TranslateFromSPIRV(
+    return SDL_ShaderCross_INTERNAL_CompileFromSPIRV(
+        device,
         format,
         originalCreateInfo,
         isCompute);
-
-    if (isCompute) {
-        SDL_GPUComputePipelineCreateInfo *computeCreateInfo = (SDL_GPUComputePipelineCreateInfo *)translatedCreateInfo;
-        compiledResult = SDL_CreateGPUComputePipeline(device, computeCreateInfo);
-        SDL_free((void *)computeCreateInfo->entrypoint);
-        SDL_free((void *)computeCreateInfo->code);
-        SDL_free(computeCreateInfo);
-    } else {
-        SDL_GPUShaderCreateInfo *shaderCreateInfo = (SDL_GPUShaderCreateInfo *)translatedCreateInfo;
-        compiledResult = SDL_CreateGPUShader(device, shaderCreateInfo);
-        SDL_free((void *)shaderCreateInfo->entrypoint);
-        SDL_free((void *)shaderCreateInfo->code);
-        SDL_free(shaderCreateInfo);
-    }
-
-    return compiledResult;
 }
 
 SDL_GPUShader *SDL_ShaderCross_CompileGraphicsShaderFromSPIRV(

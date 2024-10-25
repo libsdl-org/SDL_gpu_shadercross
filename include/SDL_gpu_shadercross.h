@@ -76,12 +76,30 @@ extern SDL_DECLSPEC SDL_GPUShaderFormat SDLCALL SDL_ShaderCross_GetSPIRVShaderFo
  * \param bytecodeSize the length of the SPIRV bytecode.
  * \param entrypoint the entry point function name for the shader in UTF-8.
  * \param shaderStage the shader stage to transpile the shader with.
+ * \returns an SDL_malloc'd string containing MSL code.
  */
 extern SDL_DECLSPEC void * SDLCALL SDL_ShaderCross_TranspileMSLFromSPIRV(
     const Uint8 *bytecode,
     size_t bytecodeSize,
     const char *entrypoint,
     SDL_ShaderCross_ShaderStage shaderStage);
+
+/**
+ * Transpile to HLSL code from SPIRV code.
+ *
+ * You must SDL_free the returned string once you are done with it.
+ *
+ * \param bytecode the SPIRV bytecode.
+ * \param bytecodeSize the length of the SPIRV bytecode.
+ * \param entrypoint the entry point function name for the shader in UTF-8.
+ * \param shaderProfile the HLSL shader profile to transpile with.
+ * \returns an SDL_malloc'd string containing HLSL code.
+ */
+extern SDL_DECLSPEC void * SDLCALL SDL_ShaderCross_TranspileHLSLFromSPIRV(
+    const Uint8 *bytecode,
+    size_t bytecodeSize,
+    const char *entrypoint,
+    const char *shaderProfile);
 
 /**
  * Compile DXBC bytecode from SPIRV code.
@@ -91,7 +109,7 @@ extern SDL_DECLSPEC void * SDLCALL SDL_ShaderCross_TranspileMSLFromSPIRV(
  * \param bytecode the SPIRV bytecode.
  * \param bytecodeSize the length of the SPIRV bytecode.
  * \param entrypoint the entry point function name for the shader in UTF-8.
- * \param shaderStage the shader stage to transpile the shader with.
+ * \param shaderStage the shader stage to compile the shader with.
  * \param size filled in with the bytecode buffer size.
  */
 extern SDL_DECLSPEC void * SDLCALL SDL_ShaderCross_CompileDXBCFromSPIRV(
@@ -109,7 +127,7 @@ extern SDL_DECLSPEC void * SDLCALL SDL_ShaderCross_CompileDXBCFromSPIRV(
  * \param bytecode the SPIRV bytecode.
  * \param bytecodeSize the length of the SPIRV bytecode.
  * \param entrypoint the entry point function name for the shader in UTF-8.
- * \param shaderStage the shader stage to transpile the shader with.
+ * \param shaderStage the shader stage to compile the shader with.
  * \param size filled in with the bytecode buffer size.
  */
 extern SDL_DECLSPEC void * SDLCALL SDL_ShaderCross_CompileDXILFromSPIRV(

@@ -23,16 +23,26 @@
 #include <SDL3/SDL_log.h>
 #include <SDL3/SDL_iostream.h>
 
+// We can emit HLSL as a destination, so let's redefine the shader format enum.
+typedef enum ShaderCross_DestinationFormat {
+    SHADERFORMAT_INVALID,
+    SHADERFORMAT_SPIRV,
+    SHADERFORMAT_DXBC,
+    SHADERFORMAT_DXIL,
+    SHADERFORMAT_MSL,
+    SHADERFORMAT_HLSL
+} ShaderCross_ShaderFormat;
+
 void print_help()
 {
     int column_width = 32;
     SDL_Log("%s", "Usage: shadercross <input> [options]");
     SDL_Log("%s", "Required options:\n");
     SDL_Log("  %-*s %s", column_width, "-s | --source <value>", "Source language format. May be inferred from the filename. Values: [SPIRV, HLSL]");
-    SDL_Log("  %-*s %s", column_width, "-d | --dest <value>", "Destination format. May be inferred from the filename. Values: [DXBC, DXIL, MSL, SPIRV]");
+    SDL_Log("  %-*s %s", column_width, "-d | --dest <value>", "Destination format. May be inferred from the filename. Values: [DXBC, DXIL, MSL, SPIRV, HLSL]");
     SDL_Log("  %-*s %s", column_width, "-t | --stage <value>", "Shader stage. May be inferred from the filename. Values: [vertex, fragment, compute]");
     SDL_Log("  %-*s %s", column_width, "-e | --entrypoint <value>", "Entrypoint function name. Default: \"main\".");
-    SDL_Log("  %-*s %s", column_width, "-m | --shadermodel <value>", "HLSL Shader Model. Only used with HLSL source. Values: [50, 51, 60]");
+    SDL_Log("  %-*s %s", column_width, "-m | --shadermodel <value>", "HLSL Shader Model. Only used with HLSL source or destination. Values: [50, 60]");
     SDL_Log("  %-*s %s", column_width, "-o | --output <value>", "Output file.");
 }
 
@@ -44,7 +54,7 @@ int main(int argc, char *argv[])
     bool stageValid = false;
 
     bool spirvSource = false;
-    SDL_GPUShaderFormat destinationFormat = SDL_GPU_SHADERFORMAT_INVALID;
+    ShaderCross_ShaderFormat destinationFormat = SHADERFORMAT_INVALID;
     SDL_ShaderCross_ShaderStage shaderStage = SDL_SHADERCROSS_SHADERSTAGE_VERTEX;
     char *outputFilename = NULL;
     char *entrypointName = "main";
@@ -88,16 +98,16 @@ int main(int argc, char *argv[])
                 }
                 i += 1;
                 if (SDL_strcasecmp(argv[i], "DXBC") == 0) {
-                    destinationFormat = SDL_GPU_SHADERFORMAT_DXBC;
+                    destinationFormat = SHADERFORMAT_DXBC;
                     destinationValid = true;
                 } else if (SDL_strcasecmp(argv[i], "DXIL") == 0) {
-                    destinationFormat = SDL_GPU_SHADERFORMAT_DXIL;
+                    destinationFormat = SHADERFORMAT_DXIL;
                     destinationValid = true;
                 } else if (SDL_strcasecmp(argv[i], "MSL") == 0) {
-                    destinationFormat = SDL_GPU_SHADERFORMAT_MSL;
+                    destinationFormat = SHADERFORMAT_MSL;
                     destinationValid = true;
                 } else if (SDL_strcasecmp(argv[i], "SPIRV") == 0) {
-                    destinationFormat = SDL_GPU_SHADERFORMAT_SPIRV;
+                    destinationFormat = SHADERFORMAT_SPIRV;
                     destinationValid = true;
                 } else {
                     SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Unrecognized destination input %s, destination must be DXBC, DXIL, MSL or SPIRV!", argv[i]);
@@ -153,14 +163,14 @@ int main(int argc, char *argv[])
                 accept_optionals = false;
             } else {
                 SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%s: Unknown argument: %s", argv[0], arg);
-                print_help(1);
+                print_help();
                 return 1;
             }
         } else if (!filename) {
             filename = arg;
         } else {
             SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%s: Unknown argument: %s", argv[0], arg);
-            print_help(1);
+            print_help();
             return 1;
         }
     }
@@ -194,13 +204,15 @@ int main(int argc, char *argv[])
 
     if (!destinationValid) {
         if (SDL_strstr(outputFilename, ".dxbc")) {
-            destinationFormat = SDL_GPU_SHADERFORMAT_DXBC;
+            destinationFormat = SHADERFORMAT_DXBC;
         } else if (SDL_strstr(outputFilename, ".dxil")) {
-            destinationFormat = SDL_GPU_SHADERFORMAT_DXIL;
+            destinationFormat = SHADERFORMAT_DXIL;
         } else if (SDL_strstr(outputFilename, ".msl")) {
-            destinationFormat = SDL_GPU_SHADERFORMAT_MSL;
+            destinationFormat = SHADERFORMAT_MSL;
         } else if (SDL_strstr(outputFilename, ".spv")) {
-            destinationFormat = SDL_GPU_SHADERFORMAT_SPIRV;
+            destinationFormat = SHADERFORMAT_SPIRV;
+        } else if (SDL_strstr(outputFilename, ".hlsl")) {
+            destinationFormat = SHADERFORMAT_HLSL;
         } else {
             SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%s", "Could not infer destination format!");
             print_help();
@@ -233,7 +245,7 @@ int main(int argc, char *argv[])
 
     if (spirvSource) {
         switch (destinationFormat) {
-            case SDL_GPU_SHADERFORMAT_DXBC: {
+            case SHADERFORMAT_DXBC: {
                 Uint8 *buffer = SDL_ShaderCross_CompileDXBCFromSPIRV(
                     fileData,
                     fileSize,
@@ -247,7 +259,7 @@ int main(int argc, char *argv[])
                 break;
             }
 
-            case SDL_GPU_SHADERFORMAT_DXIL: {
+            case SHADERFORMAT_DXIL: {
                 Uint8 *buffer = SDL_ShaderCross_CompileDXILFromSPIRV(
                     fileData,
                     fileSize,
@@ -261,19 +273,58 @@ int main(int argc, char *argv[])
                 break;
             }
 
-            case SDL_GPU_SHADERFORMAT_MSL: {
+            case SHADERFORMAT_MSL: {
                 char *buffer = SDL_ShaderCross_TranspileMSLFromSPIRV(
                     fileData,
                     fileSize,
                     entrypointName,
-                    SDL_SHADERCROSS_SHADERSTAGE_VERTEX);
+                    shaderStage);
                 SDL_IOprintf(outputIO, "%s", buffer);
                 SDL_free(buffer);
                 break;
             }
 
-            case SDL_GPU_SHADERFORMAT_SPIRV: {
+            case SHADERFORMAT_HLSL: {
+                char *profileName;
+                if (shaderModel == 50) {
+                    if (shaderStage == SDL_SHADERCROSS_SHADERSTAGE_VERTEX) {
+                        profileName = "vs_5_0";
+                    } else if (shaderStage == SDL_SHADERCROSS_SHADERSTAGE_FRAGMENT) {
+                        profileName = "ps_5_0";
+                    } else {
+                        profileName = "cs_5_0";
+                    }
+                } else if (shaderModel == 60) {
+                    if (shaderStage == SDL_SHADERCROSS_SHADERSTAGE_VERTEX) {
+                        profileName = "vs_6_0";
+                    } else if (shaderStage == SDL_SHADERCROSS_SHADERSTAGE_FRAGMENT) {
+                        profileName = "ps_6_0";
+                    } else {
+                        profileName = "cs_6_0";
+                    }
+                } else {
+                    SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%s", "Unrecognized shader model!");
+                    print_help();
+                    return 1;
+                }
+
+                char *buffer = SDL_ShaderCross_TranspileHLSLFromSPIRV(
+                    fileData,
+                    fileSize,
+                    entrypointName,
+                    profileName);
+                SDL_IOprintf(outputIO, "%s", buffer);
+                SDL_free(buffer);
+                break;
+            }
+
+            case SHADERFORMAT_SPIRV: {
                 SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Input and output are both SPIRV. Did you mean to do that?");
+                return 1;
+            }
+
+            case SHADERFORMAT_INVALID: {
+                SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Destination format not provided!");
                 return 1;
             }
         }
@@ -286,14 +337,6 @@ int main(int argc, char *argv[])
                 profileName = "ps_5_0";
             } else {
                 profileName = "cs_5_0";
-            }
-        } else if (shaderModel == 51) {
-            if (shaderStage == SDL_SHADERCROSS_SHADERSTAGE_VERTEX) {
-                profileName = "vs_5_1";
-            } else if (shaderStage == SDL_SHADERCROSS_SHADERSTAGE_FRAGMENT) {
-                profileName = "ps_5_1";
-            } else {
-                profileName = "cs_5_1";
             }
         } else if (shaderModel == 60) {
             if (shaderStage == SDL_SHADERCROSS_SHADERSTAGE_VERTEX) {
@@ -310,7 +353,7 @@ int main(int argc, char *argv[])
         }
 
         switch (destinationFormat) {
-            case SDL_GPU_SHADERFORMAT_DXBC: {
+            case SHADERFORMAT_DXBC: {
                 Uint8 *buffer = SDL_ShaderCross_CompileDXBCFromHLSL(
                     fileData,
                     entrypointName,
@@ -323,7 +366,7 @@ int main(int argc, char *argv[])
                 break;
             }
 
-            case SDL_GPU_SHADERFORMAT_DXIL: {
+            case SHADERFORMAT_DXIL: {
                 Uint8 *buffer = SDL_ShaderCross_CompileDXILFromHLSL(
                     fileData,
                     entrypointName,
@@ -336,7 +379,7 @@ int main(int argc, char *argv[])
                 break;
             }
 
-            case SDL_GPU_SHADERFORMAT_MSL: {
+            case SHADERFORMAT_MSL: {
                 void *spirv = SDL_ShaderCross_CompileSPIRVFromHLSL(
                     fileData,
                     entrypointName,
@@ -353,7 +396,7 @@ int main(int argc, char *argv[])
                 break;
             }
 
-            case SDL_GPU_SHADERFORMAT_SPIRV: {
+            case SHADERFORMAT_SPIRV: {
                 Uint8 *buffer = SDL_ShaderCross_CompileSPIRVFromHLSL(
                     fileData,
                     entrypointName,
@@ -364,6 +407,16 @@ int main(int argc, char *argv[])
                 }
                 SDL_free(buffer);
                 return 0;
+            }
+
+            case SHADERFORMAT_HLSL: {
+                SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Input and output are both HLSL. Did you mean to do that?");
+                return 1;
+            }
+
+            case SHADERFORMAT_INVALID: {
+                SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Destination format not provided!");
+                return 1;
             }
         }
     }
