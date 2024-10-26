@@ -15,10 +15,10 @@ jobs:
       fail-fast: false
       matrix:
         platform:
-          - { name: Windows (MSVC),       os: windows-2019, shell: sh, msvc: true, artifact: 'SDL_gpu_shadercross-VC-x64' }
-          - { name: Windows (mingw64),    os: windows-latest, shell: 'msys2 {0}', msystem: mingw64, msys-env: mingw-w64-x86_64, artifact: 'SDL_gpu_shadercross-mingw64' }
-          - { name: Linux,                os: ubuntu-20.04,   shell: sh, artifact: 'SDL_gpu_shadercross-linux-x64' }
-          - { name: Macos,                os: macos-latest,   shell: sh, artifact: 'SDL_gpu_shadercross-macos-x64' }
+          - { name: Windows (MSVC),       os: windows-2019, shell: sh, msvc: true, artifact: 'SDL3_gpu_shadercross-VC-x64' }
+          - { name: Windows (mingw64),    os: windows-latest, shell: 'msys2 {0}', msystem: mingw64, msys-env: mingw-w64-x86_64, artifact: 'SDL3_gpu_shadercross-mingw64' }
+          - { name: Linux,                os: ubuntu-20.04,   shell: sh, artifact: 'SDL3_gpu_shadercross-linux-x64' }
+          - { name: Macos,                os: macos-latest,   shell: sh, artifact: 'SDL3_gpu_shadercross-macos-x64' }
 
 
     steps:
@@ -57,6 +57,7 @@ jobs:
             -DBUILD_CLI=ON \
             -DENABLE_WERROR=ON \
             -DENABLE_INSTALL=ON \
+            -DENABLE_DEPS=ON \
             -DENABLE_INSTALL_CPACK=ON \
             -DCMAKE_INSTALL_PREFIX=prefix
 

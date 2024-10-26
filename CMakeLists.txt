@@ -24,8 +24,11 @@ cmake_dependent_option(BUILD_CLI_STATIC "Link CLI with static libraries" OFF "BU
 option(ENABLE_WERROR "Enable Werror" OFF)
 option(ENABLE_INSTALL "Enable installation" OFF)
 cmake_dependent_option(ENABLE_INSTALL_CPACK "Enable CPack installation" OFF "ENABLE_INSTALL" OFF)
+cmake_dependent_option(ENABLE_DEPS "Download, build and install dependencies" OFF "ENABLE_INSTALL" OFF)
 
 sdl_calculate_derived_version_variables(${MAJOR_VERSION} ${MINOR_VERSION} ${MICRO_VERSION})
+SDL_DetectTargetCPUArchitectures(SDL_CPU_NAMES)
+SDL_DetectCMakePlatform()
 
 # Platform Flags
 if(APPLE)
@@ -203,8 +206,6 @@ if(ENABLE_INSTALL)
 		COMPONENT library
 	)
 	if(ENABLE_INSTALL_CPACK)
-		SDL_DetectTargetCPUArchitectures(SDL_CPU_NAMES)
-		SDL_DetectCMakePlatform()
 		if(MSVC)
 			set(CPACK_GENERATOR "ZIP")
 		else()
@@ -217,4 +218,72 @@ if(ENABLE_INSTALL)
 		set(CPACK_PACKAGE_DIRECTORY "${CMAKE_BINARY_DIR}/dist")
 		include(CPack)
 	endif()
+endif()
+
+set(DXC_LINUX_X64_URL "https://github.com/microsoft/DirectXShaderCompiler/releases/download/v1.8.2407/linux_dxc_2024_07_31.x86_64.tar.gz")
+set(DXC_LINUX_X64_HASH "SHA256=b58725ac191df0686994fb9d54d27ee8dd3f180b023d562733112a499ea1195c")
+set(DXC_WINDOWS_X86_X64_ARM64_URL "https://github.com/microsoft/DirectXShaderCompiler/releases/download/v1.8.2407/dxc_2024_07_31.zip")
+set(DXC_WINDOWS_X86_X64_ARM64_HASH "SHA256=e2627f004f0f9424d8c71ea1314d04f38c5a5096884ae9217f1f18bd320267b5")
+
+if(ENABLE_DEPS)
+	set(chmod_0755 OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
+
+	# Install SDL3
+	if(BUILD_CLI AND NOT BUILD_CLI_STATIC)
+		if(WIN32)
+			install(FILES $<TARGET_FILE:SDL3::SDL3-shared> DESTINATION "${CMAKE_INSTALL_BINDIR}" PERMISSIONS ${chmod_0755})
+		else()
+			install(FILES $<TARGET_FILE:SDL3::SDL3-shared> $<TARGET_SONAME_FILE:SDL3::SDL3-shared> DESTINATION "${CMAKE_INSTALL_LIBDIR}" PERMISSIONS ${chmod_0755})
+		endif()
+	endif()
+
+	# Download and install prebuilt dxil and dxcompiler shared libraries
+	include(ExternalProject)
+	if(LINUX AND SDL_CPU_X64)
+		ExternalProject_Add(dxc
+			URL					"${DXC_LINUX_X64_URL}"
+			URL_HASH			"${DXC_LINUX_X64_HASH}"
+			DOWNLOAD_EXTRACT_TIMESTAMP "1"
+			CONFIGURE_COMMAND 	""
+			BUILD_COMMAND	 	""
+			INSTALL_COMMAND	 	""
+		)
+		ExternalProject_Get_property(dxc SOURCE_DIR)
+		install(FILES "${SOURCE_DIR}/lib/libdxcompiler.so" "${SOURCE_DIR}/lib/libdxil.so" DESTINATION "${CMAKE_INSTALL_LIBDIR}" PERMISSIONS ${chmod_0755})
+		install(FILES "${SOURCE_DIR}/LICENSE-LLVM.txt" "${SOURCE_DIR}/LICENSE-MS.txt" DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/licenses/dxc")
+	elseif(WINDOWS AND (SDL_CPU_ARM64 OR SDL_CPU_X86 OR SDL_CPU_X64))
+		ExternalProject_Add(dxc
+			URL					"${DXC_WINDOWS_X86_X64_ARM64_URL}"
+			URL_HASH			"${DXC_WINDOWS_X86_X64_ARM64_HASH}"
+			DOWNLOAD_EXTRACT_TIMESTAMP "1"
+			CONFIGURE_COMMAND 	""
+			BUILD_COMMAND	 	""
+			INSTALL_COMMAND	 	""
+		)
+		if(SDL_CPU_ARM64)
+			set(arch_dir "arm64")
+		elseif(SDL_CPU_X86)
+			set(arch_dir "x86")
+		elseif(SDL_CPU_X64)
+			set(arch_dir "x64")
+		endif()
+		ExternalProject_Get_property(dxc SOURCE_DIR)
+		install(FILES "${SOURCE_DIR}/bin/${arch_dir}/dxcompiler.dll" "${SOURCE_DIR}/bin/${arch_dir}/dxil.dll" DESTINATION "${CMAKE_INSTALL_BINDIR}" PERMISSIONS ${chmod_0755})
+		install(FILES "${SOURCE_DIR}/LICENSE-LLVM.txt" "${SOURCE_DIR}/LICENSE-MS.txt" "${SOURCE_DIR}/LICENSE-MIT.txt" DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/licenses/dxc")
+	endif()
+
+	# Download, configure, build and install spirv-cross
+	ExternalProject_Add(spirv_cross
+		GIT_REPOSITORY "https://github.com/KhronosGroup/SPIRV-Cross.git"
+		GIT_TAG "main"
+		CMAKE_ARGS "-DCMAKE_BUILD_TYPE=Release" "-DSPIRV_CROSS_SHARED=ON" "-DSPIRV_CROSS_STATIC=OFF" "-DSPIRV_CROSS_CLI=OFF" "-DSPIRV_CROSS_ENABLE_TESTS=OFF" "-DCMAKE_INSTALL_LIBDIR=lib" "-DCMAKE_INSTALL_BINDIR=bin" "-DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>" "-DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}" "-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}"
+		BUILD_COMMAND "${CMAKE_COMMAND}" "--build" "<BINARY_DIR>" --config "Release"
+		INSTALL_COMMAND "${CMAKE_COMMAND}" "--install" "<BINARY_DIR>" --config "Release"
+	)
+	ExternalProject_Get_property(spirv_cross INSTALL_DIR)
+	ExternalProject_Get_property(spirv_cross SOURCE_DIR)
+	install(FILES "${SOURCE_DIR}/LICENSE" DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/licenses/spirv-cross")
+	install(DIRECTORY "${INSTALL_DIR}/lib/" DESTINATION "${CMAKE_INSTALL_LIBDIR}" FILES_MATCHING PATTERN "*.so*" PERMISSIONS ${chmod_0755})
+	install(DIRECTORY "${INSTALL_DIR}/lib/" DESTINATION "${CMAKE_INSTALL_LIBDIR}" FILES_MATCHING PATTERN "*.dylib*" PERMISSIONS ${chmod_0755})
+	install(DIRECTORY "${INSTALL_DIR}/bin/" DESTINATION "${CMAKE_INSTALL_BINDIR}" FILES_MATCHING PATTERN "*.dll" PERMISSIONS ${chmod_0755})
 endif()
