@@ -696,6 +696,7 @@ SDL_GPUComputePipeline *SDL_ShaderCross_CompileComputePipelineFromHLSL(
 #ifndef SDL_GPU_SPIRV_CROSS_DLL
 #if defined(_WIN32)
 #define SDL_GPU_SPIRV_CROSS_DLL "spirv-cross-c-shared.dll"
+#define SDL_GPU_SPIRV_CROSS_DLL_2 "libspirv-cross-c-shared.dll"
 #elif defined(__APPLE__)
 #define SDL_GPU_SPIRV_CROSS_DLL "libspirv-cross-c-shared.0.dylib"
 #else
@@ -1155,6 +1156,11 @@ bool SDL_ShaderCross_Init(void)
 
 #ifndef SDL_GPU_SHADERCROSS_STATIC
     spirvcross_dll = SDL_LoadObject(SDL_GPU_SPIRV_CROSS_DLL);
+#ifdef SDL_GPU_SPIRV_CROSS_DLL_2
+    if (spirvcross_dll == NULL) {
+        spirvcross_dll = SDL_LoadObject(SDL_GPU_SPIRV_CROSS_DLL_2);
+    }
+#endif
     if (spirvcross_dll != NULL) {
         spvc_loaded = true;
     }
