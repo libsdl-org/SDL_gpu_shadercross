@@ -996,7 +996,7 @@ static SPIRVTranspileContext *SDL_ShaderCross_INTERNAL_TranspileFromSPIRV(
         }
 
         // Determine readonly vs writeonly resources
-        for (int i = 0; i < num_storage_textures; i += 1) {
+        for (size_t i = 0; i < num_storage_textures; i += 1) {
             if (!SDL_spvc_compiler_has_decoration(compiler, reflected_resources[i].id, SpvDecorationDescriptorSet) || !SDL_spvc_compiler_has_decoration(compiler, reflected_resources[i].id, SpvDecorationBinding)) {
                 SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%s", "Shader resources must have descriptor set and binding index!");
                 SDL_spvc_context_destroy(context);
