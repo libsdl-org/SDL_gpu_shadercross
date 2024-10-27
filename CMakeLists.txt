@@ -115,6 +115,7 @@ endif()
 
 if(BUILD_CLI)
 	add_executable(shadercross src/cli.c)
+	sdl_add_warning_options(shadercross WARNING_AS_ERROR ${ENABLE_WERROR})
 
 	if(BUILD_CLI_STATIC)
 		target_link_libraries(shadercross PRIVATE SDL3_gpu_shadercross::SDL3_gpu_shadercross-static)

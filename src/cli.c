@@ -33,7 +33,7 @@ typedef enum ShaderCross_DestinationFormat {
     SHADERFORMAT_HLSL
 } ShaderCross_ShaderFormat;
 
-void print_help()
+void print_help(void)
 {
     int column_width = 32;
     SDL_Log("%s", "Usage: shadercross <input> [options]");
@@ -258,7 +258,7 @@ int main(int argc, char *argv[])
                     entrypointName,
                     shaderStage,
                     &bytecodeSize);
-                for (int i = 0; i < bytecodeSize; i += 1) {
+                for (size_t i = 0; i < bytecodeSize; i += 1) {
                     SDL_WriteU8(outputIO, buffer[i]);
                 }
                 SDL_free(buffer);
@@ -272,7 +272,7 @@ int main(int argc, char *argv[])
                     entrypointName,
                     shaderStage,
                     &bytecodeSize);
-                for (int i = 0; i < bytecodeSize; i += 1) {
+                for (size_t i = 0; i < bytecodeSize; i += 1) {
                     SDL_WriteU8(outputIO, buffer[i]);
                 }
                 SDL_free(buffer);
@@ -364,7 +364,7 @@ int main(int argc, char *argv[])
                     entrypointName,
                     profileName,
                     &bytecodeSize);
-                for (int i = 0; i < bytecodeSize; i += 1) {
+                for (size_t i = 0; i < bytecodeSize; i += 1) {
                     SDL_WriteU8(outputIO, buffer[i]);
                 }
                 SDL_free(buffer);
@@ -377,7 +377,7 @@ int main(int argc, char *argv[])
                     entrypointName,
                     profileName,
                     &bytecodeSize);
-                for (int i = 0; i < bytecodeSize; i += 1) {
+                for (size_t i = 0; i < bytecodeSize; i += 1) {
                     SDL_WriteU8(outputIO, buffer[i]);
                 }
                 SDL_free(buffer);
@@ -406,7 +406,7 @@ int main(int argc, char *argv[])
                     entrypointName,
                     profileName,
                     &bytecodeSize);
-                for (int i = 0; i < bytecodeSize; i += 1) {
+                for (size_t i = 0; i < bytecodeSize; i += 1) {
                     SDL_WriteU8(outputIO, buffer[i]);
                 }
                 SDL_free(buffer);
