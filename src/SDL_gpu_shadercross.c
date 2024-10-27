@@ -897,7 +897,7 @@ static SPIRVTranspileContext *SDL_ShaderCross_INTERNAL_TranspileFromSPIRV(
         // Create mappings
         // TODO: validate descriptor sets and binding order?
         spvc_msl_resource_binding binding;
-        for (int i = 0; i < num_texture_samplers; i += 1) {
+        for (size_t i = 0; i < num_texture_samplers; i += 1) {
             binding.stage = SpvExecutionModelMax; // stage is arbitrary, we only are compiling one shader at a time
             binding.desc_set = shaderStage == SDL_SHADERCROSS_SHADERSTAGE_VERTEX ? 0 : 2;
             binding.binding = i;
@@ -911,7 +911,7 @@ static SPIRVTranspileContext *SDL_ShaderCross_INTERNAL_TranspileFromSPIRV(
             }
         }
 
-        for (int i = 0; i < num_storage_textures; i += 1) {
+        for (size_t i = 0; i < num_storage_textures; i += 1) {
             binding.stage = SpvExecutionModelMax;
             binding.desc_set = shaderStage == SDL_SHADERCROSS_SHADERSTAGE_VERTEX ? 0 : 2;
             binding.binding = num_texture_samplers + i;
@@ -924,7 +924,7 @@ static SPIRVTranspileContext *SDL_ShaderCross_INTERNAL_TranspileFromSPIRV(
             }
         }
 
-        for (int i = 0; i < num_storage_buffers; i += 1) {
+        for (size_t i = 0; i < num_storage_buffers; i += 1) {
             binding.stage = SpvExecutionModelMax;
             binding.desc_set = shaderStage == SDL_SHADERCROSS_SHADERSTAGE_VERTEX ? 0 : 2;
             binding.binding = num_texture_samplers + num_storage_textures + i;
@@ -937,7 +937,7 @@ static SPIRVTranspileContext *SDL_ShaderCross_INTERNAL_TranspileFromSPIRV(
             }
         }
 
-        for (int i = 0; i< num_uniform_buffers; i += 1) {
+        for (size_t i = 0; i< num_uniform_buffers; i += 1) {
             binding.stage = SpvExecutionModelMax;
             binding.desc_set = shaderStage == SDL_SHADERCROSS_SHADERSTAGE_VERTEX ? 1 : 3;
             binding.binding = i;
@@ -1029,7 +1029,7 @@ static SPIRVTranspileContext *SDL_ShaderCross_INTERNAL_TranspileFromSPIRV(
         }
 
         // Determine readonly vs writeonly resources
-        for (int i = 0; i < num_storage_buffers; i += 1) {
+        for (size_t i = 0; i < num_storage_buffers; i += 1) {
             if (!SDL_spvc_compiler_has_decoration(compiler, reflected_resources[i].id, SpvDecorationDescriptorSet) || !SDL_spvc_compiler_has_decoration(compiler, reflected_resources[i].id, SpvDecorationBinding)) {
                 SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%s", "Shader resources must have descriptor set and binding index!");
                 SDL_spvc_context_destroy(context);
@@ -1064,7 +1064,7 @@ static SPIRVTranspileContext *SDL_ShaderCross_INTERNAL_TranspileFromSPIRV(
         // Create mappings
         // TODO: validate descriptor sets and binding order?
         spvc_msl_resource_binding binding;
-        for (int i = 0; i < num_texture_samplers; i += 1) {
+        for (size_t i = 0; i < num_texture_samplers; i += 1) {
             binding.stage = SpvExecutionModelMax; // stage is arbitrary, we only are compiling one shader at a time
             binding.desc_set = 0;
             binding.binding = i;
@@ -1078,7 +1078,7 @@ static SPIRVTranspileContext *SDL_ShaderCross_INTERNAL_TranspileFromSPIRV(
             }
         }
 
-        for (int i = 0; i < num_readonly_storage_textures; i += 1) {
+        for (size_t i = 0; i < num_readonly_storage_textures; i += 1) {
             binding.stage = SpvExecutionModelMax;
             binding.desc_set = 0;
             binding.binding = num_texture_samplers + i;
@@ -1091,7 +1091,7 @@ static SPIRVTranspileContext *SDL_ShaderCross_INTERNAL_TranspileFromSPIRV(
             }
         }
 
-        for (int i = 0; i < num_readonly_storage_buffers; i += 1) {
+        for (size_t i = 0; i < num_readonly_storage_buffers; i += 1) {
             binding.stage = SpvExecutionModelMax;
             binding.desc_set = 0;
             binding.binding = num_texture_samplers + num_readonly_storage_textures + i;
@@ -1104,7 +1104,7 @@ static SPIRVTranspileContext *SDL_ShaderCross_INTERNAL_TranspileFromSPIRV(
             }
         }
 
-        for (int i = 0; i < num_readwrite_storage_textures; i += 1) {
+        for (size_t i = 0; i < num_readwrite_storage_textures; i += 1) {
             binding.stage = SpvExecutionModelMax;
             binding.desc_set = 1;
             binding.binding = i;
@@ -1117,7 +1117,7 @@ static SPIRVTranspileContext *SDL_ShaderCross_INTERNAL_TranspileFromSPIRV(
             }
         }
 
-        for (int i = 0; i < num_readwrite_storage_buffers; i += 1) {
+        for (size_t i = 0; i < num_readwrite_storage_buffers; i += 1) {
             binding.stage = SpvExecutionModelMax;
             binding.desc_set = 1;
             binding.binding = num_readwrite_storage_textures + i;
@@ -1130,7 +1130,7 @@ static SPIRVTranspileContext *SDL_ShaderCross_INTERNAL_TranspileFromSPIRV(
             }
         }
 
-        for (int i = 0; i < num_uniform_buffers; i += 1) {
+        for (size_t i = 0; i < num_uniform_buffers; i += 1) {
             binding.stage = SpvExecutionModelMax;
             binding.desc_set = 2;
             binding.binding = i;
