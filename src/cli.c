@@ -109,6 +109,9 @@ int main(int argc, char *argv[])
                 } else if (SDL_strcasecmp(argv[i], "SPIRV") == 0) {
                     destinationFormat = SHADERFORMAT_SPIRV;
                     destinationValid = true;
+                } else if (SDL_strcasecmp(argv[i], "HLSL") == 0) {
+                    destinationFormat = SHADERFORMAT_HLSL;
+                    destinationValid = true;
                 } else {
                     SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Unrecognized destination input %s, destination must be DXBC, DXIL, MSL or SPIRV!", argv[i]);
                     print_help();
@@ -226,7 +229,7 @@ int main(int argc, char *argv[])
         }
     }
 
-    if (!stageValid && destinationFormat != SHADERFORMAT_MSL) {
+    if (!stageValid) {
         if (SDL_strcasestr(filename, ".vert")) {
             shaderStage = SDL_SHADERCROSS_SHADERSTAGE_VERTEX;
         } else if (SDL_strcasestr(filename, ".frag")) {
@@ -279,7 +282,8 @@ int main(int argc, char *argv[])
                 char *buffer = SDL_ShaderCross_TranspileMSLFromSPIRV(
                     fileData,
                     fileSize,
-                    entrypointName);
+                    entrypointName,
+                    shaderStage);
                 SDL_IOprintf(outputIO, "%s", buffer);
                 SDL_free(buffer);
                 break;
@@ -382,10 +386,15 @@ int main(int argc, char *argv[])
                     entrypointName,
                     profileName,
                     &bytecodeSize);
+                if (spirv == NULL) {
+                    SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%s", "Failed to compile SPIR-V!");
+                    return 1;
+                }
                 char *buffer = SDL_ShaderCross_TranspileMSLFromSPIRV(
                     spirv,
                     bytecodeSize,
-                    entrypointName);
+                    entrypointName,
+                    shaderStage);
                 SDL_IOprintf(outputIO, "%s", buffer);
                 SDL_free(spirv);
                 SDL_free(buffer);
