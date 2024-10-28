@@ -36,8 +36,8 @@ typedef enum ShaderCross_DestinationFormat {
 void print_help(void)
 {
     int column_width = 32;
-    SDL_Log("%s", "Usage: shadercross <input> [options]");
-    SDL_Log("%s", "Required options:\n");
+    SDL_Log("Usage: shadercross <input> [options]");
+    SDL_Log("Required options:\n");
     SDL_Log("  %-*s %s", column_width, "-s | --source <value>", "Source language format. May be inferred from the filename. Values: [SPIRV, HLSL]");
     SDL_Log("  %-*s %s", column_width, "-d | --dest <value>", "Destination format. May be inferred from the filename. Values: [DXBC, DXIL, MSL, SPIRV, HLSL]");
     SDL_Log("  %-*s %s", column_width, "-t | --stage <value>", "Shader stage. May be inferred from the filename. Values: [vertex, fragment, compute]");
@@ -258,9 +258,7 @@ int main(int argc, char *argv[])
                     entrypointName,
                     shaderStage,
                     &bytecodeSize);
-                for (size_t i = 0; i < bytecodeSize; i += 1) {
-                    SDL_WriteU8(outputIO, buffer[i]);
-                }
+                SDL_WriteIO(outputIO, buffer, bytecodeSize);
                 SDL_free(buffer);
                 break;
             }
@@ -272,9 +270,7 @@ int main(int argc, char *argv[])
                     entrypointName,
                     shaderStage,
                     &bytecodeSize);
-                for (size_t i = 0; i < bytecodeSize; i += 1) {
-                    SDL_WriteU8(outputIO, buffer[i]);
-                }
+                SDL_WriteIO(outputIO, buffer, bytecodeSize);
                 SDL_free(buffer);
                 break;
             }
@@ -364,9 +360,7 @@ int main(int argc, char *argv[])
                     entrypointName,
                     profileName,
                     &bytecodeSize);
-                for (size_t i = 0; i < bytecodeSize; i += 1) {
-                    SDL_WriteU8(outputIO, buffer[i]);
-                }
+                SDL_WriteIO(outputIO, buffer, bytecodeSize);
                 SDL_free(buffer);
                 break;
             }
@@ -377,9 +371,7 @@ int main(int argc, char *argv[])
                     entrypointName,
                     profileName,
                     &bytecodeSize);
-                for (size_t i = 0; i < bytecodeSize; i += 1) {
-                    SDL_WriteU8(outputIO, buffer[i]);
-                }
+                SDL_WriteIO(outputIO, buffer, bytecodeSize);
                 SDL_free(buffer);
                 break;
             }
@@ -406,9 +398,7 @@ int main(int argc, char *argv[])
                     entrypointName,
                     profileName,
                     &bytecodeSize);
-                for (size_t i = 0; i < bytecodeSize; i += 1) {
-                    SDL_WriteU8(outputIO, buffer[i]);
-                }
+                SDL_WriteIO(outputIO, buffer, bytecodeSize);
                 SDL_free(buffer);
                 return 0;
             }
