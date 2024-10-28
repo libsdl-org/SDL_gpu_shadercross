@@ -607,6 +607,11 @@ static ID3DBlob *SDL_ShaderCross_INTERNAL_CompileDXBC(
     ID3DBlob *errorBlob;
     HRESULT ret;
 
+    if (SDL_D3DCompile == NULL) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%s", "Could not load D3DCompile!");
+        return NULL;
+    }
+
     ret = SDL_D3DCompile(
         hlslSource,
         SDL_strlen(hlslSource),
