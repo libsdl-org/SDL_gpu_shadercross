@@ -391,6 +391,10 @@ int main(int argc, char *argv[])
                     entrypointName,
                     profileName,
                     &bytecodeSize);
+                if (spirv == NULL) {
+                    SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%s", "Failed to compile SPIR-V!");
+                    return 1;
+                }
                 char *buffer = SDL_ShaderCross_TranspileMSLFromSPIRV(
                     spirv,
                     bytecodeSize,

@@ -292,12 +292,17 @@ static void *SDL_ShaderCross_INTERNAL_CompileUsingDXC(
     bool spirv,
     size_t *size) // filled in with number of bytes of returned buffer
 {
+    if (SDL_strstr(shaderProfile, "5_0")) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%s", "Cannot use Shader Model 5 with DXC!");
+        return NULL;
+    }
+
     DxcBuffer source;
     IDxcResult *dxcResult;
     IDxcBlob *blob;
     IDxcBlobUtf8 *errors;
     size_t entryPointLength = SDL_utf8strlen(entrypoint) + 1;
-    const char *entryPointUtf16 = SDL_iconv_string("UTF-16", "UTF-8", entrypoint, entryPointLength);
+    wchar_t *entryPointUtf16 = (wchar_t *)SDL_iconv_string("WCHAR_T", "UTF-8", entrypoint, entryPointLength);
     LPCWSTR args[] = {
         (LPCWSTR)L"-E",
         (LPCWSTR)entryPointUtf16,
