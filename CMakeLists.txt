@@ -24,7 +24,7 @@ cmake_dependent_option(BUILD_CLI_STATIC "Link CLI with static libraries" OFF "BU
 option(ENABLE_WERROR "Enable Werror" OFF)
 option(ENABLE_INSTALL "Enable installation" OFF)
 cmake_dependent_option(ENABLE_INSTALL_CPACK "Enable CPack installation" OFF "ENABLE_INSTALL" OFF)
-cmake_dependent_option(ENABLE_DEPS "Download, build and install dependencies" OFF "ENABLE_INSTALL" OFF)
+cmake_dependent_option(ENABLE_INSTALL_DEPS "Download, build and install dependencies" OFF "ENABLE_INSTALL" OFF)
 
 sdl_calculate_derived_version_variables(${MAJOR_VERSION} ${MINOR_VERSION} ${MICRO_VERSION})
 SDL_DetectTargetCPUArchitectures(SDL_CPU_NAMES)
@@ -115,6 +115,7 @@ endif()
 
 if(BUILD_CLI)
 	add_executable(shadercross src/cli.c)
+	sdl_add_warning_options(shadercross WARNING_AS_ERROR ${ENABLE_WERROR})
 
 	if(BUILD_CLI_STATIC)
 		target_link_libraries(shadercross PRIVATE SDL3_gpu_shadercross::SDL3_gpu_shadercross-static)
@@ -225,16 +226,22 @@ set(DXC_LINUX_X64_HASH "SHA256=b58725ac191df0686994fb9d54d27ee8dd3f180b023d56273
 set(DXC_WINDOWS_X86_X64_ARM64_URL "https://github.com/microsoft/DirectXShaderCompiler/releases/download/v1.8.2407/dxc_2024_07_31.zip")
 set(DXC_WINDOWS_X86_X64_ARM64_HASH "SHA256=e2627f004f0f9424d8c71ea1314d04f38c5a5096884ae9217f1f18bd320267b5")
 
-if(ENABLE_DEPS)
+if(ENABLE_INSTALL_DEPS)
 	set(chmod_0755 OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
+	if(APPLE)
+		set(rpath_origin "@executable_path")
+	else()
+		set(rpath_origin "\$ORIGIN")
+	endif()
+
+	if(TARGET shadercross)
+		file(RELATIVE_PATH bin_to_lib "${CMAKE_INSTALL_FULL_BINDIR}" "${CMAKE_INSTALL_FULL_LIBDIR}")
+		set_property(TARGET shadercross PROPERTY INSTALL_RPATH "${rpath_origin}/${bin_to_lib}")
+	endif()
 
 	# Install SDL3
 	if(BUILD_CLI AND NOT BUILD_CLI_STATIC)
-		if(WIN32)
-			install(FILES $<TARGET_FILE:SDL3::SDL3-shared> DESTINATION "${CMAKE_INSTALL_BINDIR}" PERMISSIONS ${chmod_0755})
-		else()
-			install(FILES $<TARGET_FILE:SDL3::SDL3-shared> $<TARGET_SONAME_FILE:SDL3::SDL3-shared> DESTINATION "${CMAKE_INSTALL_LIBDIR}" PERMISSIONS ${chmod_0755})
-		endif()
+		install(IMPORTED_RUNTIME_ARTIFACTS SDL3::SDL3-shared RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}" LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}")
 	endif()
 
 	# Download and install prebuilt dxil and dxcompiler shared libraries
@@ -274,10 +281,10 @@ if(ENABLE_DEPS)
 
 	# Download, configure, build and install spirv-cross
 	ExternalProject_Add(spirv_cross
-		GIT_REPOSITORY "https://github.com/KhronosGroup/SPIRV-Cross.git"
-		GIT_TAG "main"
-		CMAKE_ARGS "-DCMAKE_BUILD_TYPE=Release" "-DSPIRV_CROSS_SHARED=ON" "-DSPIRV_CROSS_STATIC=OFF" "-DSPIRV_CROSS_CLI=OFF" "-DSPIRV_CROSS_ENABLE_TESTS=OFF" "-DCMAKE_INSTALL_LIBDIR=lib" "-DCMAKE_INSTALL_BINDIR=bin" "-DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>" "-DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}" "-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}"
-		BUILD_COMMAND "${CMAKE_COMMAND}" "--build" "<BINARY_DIR>" --config "Release"
+		GIT_REPOSITORY 	"https://github.com/KhronosGroup/SPIRV-Cross.git"
+		GIT_TAG 		"main"
+		CMAKE_ARGS 		"-DCMAKE_BUILD_TYPE=Release" "-DSPIRV_CROSS_SHARED=ON" "-DSPIRV_CROSS_STATIC=OFF" "-DSPIRV_CROSS_CLI=OFF" "-DSPIRV_CROSS_ENABLE_TESTS=OFF" "-DCMAKE_INSTALL_LIBDIR=lib" "-DCMAKE_INSTALL_BINDIR=bin" "-DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>" "-DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}" "-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}"
+		BUILD_COMMAND 	"${CMAKE_COMMAND}" "--build" "<BINARY_DIR>" --config "Release"
 		INSTALL_COMMAND "${CMAKE_COMMAND}" "--install" "<BINARY_DIR>" --config "Release"
 	)
 	ExternalProject_Get_property(spirv_cross INSTALL_DIR)
@@ -286,4 +293,59 @@ if(ENABLE_DEPS)
 	install(DIRECTORY "${INSTALL_DIR}/lib/" DESTINATION "${CMAKE_INSTALL_LIBDIR}" FILES_MATCHING PATTERN "*.so*" PERMISSIONS ${chmod_0755})
 	install(DIRECTORY "${INSTALL_DIR}/lib/" DESTINATION "${CMAKE_INSTALL_LIBDIR}" FILES_MATCHING PATTERN "*.dylib*" PERMISSIONS ${chmod_0755})
 	install(DIRECTORY "${INSTALL_DIR}/bin/" DESTINATION "${CMAKE_INSTALL_BINDIR}" FILES_MATCHING PATTERN "*.dll" PERMISSIONS ${chmod_0755})
+
+	if(NOT WIN32)
+		ExternalProject_Add(spirv_headers
+			GIT_REPOSITORY 		"https://github.com/KhronosGroup/SPIRV-Headers.git"
+			GIT_TAG 			"main"
+			CMAKE_ARGS 			"-DCMAKE_BUILD_TYPE=Release" "-DCMAKE_INSTALL_LIBDIR=lib" "-DCMAKE_INSTALL_BINDIR=bin" "-DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>" "-DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}" "-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}"
+			BUILD_COMMAND 		"${CMAKE_COMMAND}" "--build" "<BINARY_DIR>" --config "Release"
+			INSTALL_COMMAND 	"${CMAKE_COMMAND}" "--install" "<BINARY_DIR>" --config "Release"
+		)
+		ExternalProject_Get_property(spirv_headers INSTALL_DIR)
+		set(spirv_headers_install_dir "${INSTALL_DIR}")
+
+		ExternalProject_Add(vulkan_headers
+			GIT_REPOSITORY 		"https://github.com/KhronosGroup/Vulkan-Headers"
+			GIT_TAG 			"main"
+			CMAKE_ARGS 			"-DCMAKE_BUILD_TYPE=Release" "-DCMAKE_INSTALL_LIBDIR=lib" "-DCMAKE_INSTALL_BINDIR=bin" "-DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>" "-DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}" "-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}"
+			BUILD_COMMAND 		"${CMAKE_COMMAND}" "--build" "<BINARY_DIR>" --config "Release"
+			INSTALL_COMMAND 	"${CMAKE_COMMAND}" "--install" "<BINARY_DIR>" --config "Release"
+		)
+		ExternalProject_Get_property(vulkan_headers INSTALL_DIR)
+		set(vulkan_headers_install_dir "${INSTALL_DIR}")
+
+		ExternalProject_Add(vulkan_loader
+			DEPENDS 			spirv_headers vulkan_headers
+			GIT_REPOSITORY 		"https://github.com/KhronosGroup/Vulkan-Loader.git"
+			GIT_TAG 			"main"
+			CMAKE_ARGS 			"-DCMAKE_BUILD_TYPE=Release" "-DCMAKE_INSTALL_LIBDIR=lib" "-DCMAKE_INSTALL_BINDIR=bin" "-DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>" "-DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}" "-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}" "-DCMAKE_PREFIX_PATH=${vulkan_headers_install_dir}"
+			BUILD_COMMAND 		"${CMAKE_COMMAND}" "--build" "<BINARY_DIR>" --config "Release"
+			INSTALL_COMMAND 	"${CMAKE_COMMAND}" "--install" "<BINARY_DIR>" --config "Release"
+		)
+		ExternalProject_Get_property(vulkan_loader INSTALL_DIR)
+		set(vulkan_loader_install_dir "${INSTALL_DIR}")
+
+		find_package(BISON REQUIRED)
+		ExternalProject_Add(vkd3d
+			DEPENDS 			spirv_headers vulkan_headers vulkan_loader
+			URL					"https://dl.winehq.org/vkd3d/source/vkd3d-1.13.tar.xz"
+			URL_HASH			"SHA256=cf637873695fcc02fab308f68608f0bbb90481332a2ff0a9597c7c9fd97d363d"
+			DOWNLOAD_EXTRACT_TIMESTAMP "1"
+			CONFIGURE_COMMAND 	"sh" "<SOURCE_DIR>/configure" "--prefix=<INSTALL_DIR>" "--enable-tests=no" "--enable-demos=no" "--disable-doxygen-doc" "CFLAGS=-I${spirv_headers_install_dir}/include -I${vulkan_headers_install_dir}/include -I${vulkan_loader_install_dir}/include" "LDFLAGS=-L${vulkan_loader_install_dir}/lib" "BISON=${BISON_EXECUTABLE}"
+			BUILD_COMMAND	 	"make"
+			INSTALL_COMMAND	 	"make" "install"
+		)
+		ExternalProject_Get_property(vkd3d SOURCE_DIR)
+		ExternalProject_Get_property(vkd3d INSTALL_DIR)
+		install(DIRECTORY "${INSTALL_DIR}/lib/" DESTINATION "${CMAKE_INSTALL_LIBDIR}" FILES_MATCHING PATTERN "*.so*" PERMISSIONS ${chmod_0755})
+		install(DIRECTORY "${INSTALL_DIR}/lib/" DESTINATION "${CMAKE_INSTALL_LIBDIR}" FILES_MATCHING PATTERN "*.dylib*" PERMISSIONS ${chmod_0755})
+		install(FILES "${SOURCE_DIR}/COPYING" DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/licenses/vkd3d")
+	endif()
+	if(LINUX)
+		find_program(PATCHELF_BIN NAMES "patchelf" REQUIRED)
+		install(CODE "file(GLOB so_paths \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}/*so*\")\n  foreach(so_path \${so_paths})\n    if(NOT IS_SYMLINK \${so_path})\n      message(STATUS \"Adding \\\"\$ORIGIN\\\" to RPATH of \${so_path}\")\n      execute_process(COMMAND ${PATCHELF_BIN} \"\${so_path}\" --add-rpath \"\$ORIGIN\")\n    endif()\n  endforeach()")
+	elseif(APPLE)
+		# FIXME: Apple probably needs to do something similar as Linux, but using otool
+	endif()
 endif()

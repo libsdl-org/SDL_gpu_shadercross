@@ -49,6 +49,23 @@ jobs:
           version: 3-head
           sdl-test: true
           shell: ${{ matrix.platform.shell }}
+      - name: Install Linux requirements
+        if: ${{ runner.os == 'Linux' }}
+        run: |
+          # patchelf is needed to fix the runpath of libSDL3.so.0
+          wget https://github.com/NixOS/patchelf/releases/download/0.18.0/patchelf-0.18.0-x86_64.tar.gz
+          tar xf patchelf-0.18.0-x86_64.tar.gz ./bin/patchelf
+          echo "$PWD/bin" >>$GITHUB_PATH
+
+          # libxrandr-dev is needed by vulkan-loader
+          sudo apt-get update -y
+          sudo apt-get install -y patchelf libxrandr-dev
+      - name: Install macOS requirements
+        if: ${{ runner.os == 'macOS' }}
+        run: |
+          # bison is needed by vkd3d
+          brew install bison
+          echo "/opt/homebrew/opt/bison/bin" >>$GITHUB_PATH
 
       - name: Configure (CMake)
         run: |
@@ -57,7 +74,7 @@ jobs:
             -DBUILD_CLI=ON \
             -DENABLE_WERROR=ON \
             -DENABLE_INSTALL=ON \
-            -DENABLE_DEPS=ON \
+            -DENABLE_INSTALL_DEPS=ON \
             -DENABLE_INSTALL_CPACK=ON \
             -DCMAKE_INSTALL_PREFIX=prefix
 
