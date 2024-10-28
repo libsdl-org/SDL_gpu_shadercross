@@ -356,6 +356,8 @@ static void *SDL_ShaderCross_INTERNAL_CompileUsingDXC(
         IID_IDxcResult,
         (void **)&dxcResult);
 
+    SDL_free(entryPointUtf16);
+
     if (ret < 0) {
         SDL_LogError(SDL_LOG_CATEGORY_GPU,
                      "IDxcShaderCompiler3::Compile failed: %X",
