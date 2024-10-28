@@ -109,6 +109,9 @@ int main(int argc, char *argv[])
                 } else if (SDL_strcasecmp(argv[i], "SPIRV") == 0) {
                     destinationFormat = SHADERFORMAT_SPIRV;
                     destinationValid = true;
+                } else if (SDL_strcasecmp(argv[i], "HLSL") == 0) {
+                    destinationFormat = SHADERFORMAT_HLSL;
+                    destinationValid = true;
                 } else {
                     SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Unrecognized destination input %s, destination must be DXBC, DXIL, MSL or SPIRV!", argv[i]);
                     print_help();
@@ -226,7 +229,7 @@ int main(int argc, char *argv[])
         }
     }
 
-    if (!stageValid && destinationFormat != SHADERFORMAT_MSL) {
+    if (!stageValid) {
         if (SDL_strcasestr(filename, ".vert")) {
             shaderStage = SDL_SHADERCROSS_SHADERSTAGE_VERTEX;
         } else if (SDL_strcasestr(filename, ".frag")) {
