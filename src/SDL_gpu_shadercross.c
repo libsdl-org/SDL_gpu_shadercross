@@ -591,6 +591,46 @@ void *SDL_ShaderCross_CompileDXBCFromHLSL(
     const char *shaderProfile,
     size_t *size) // filled in with number of bytes of returned buffer
 {
+    const char *originalHlslSource = hlslSource;
+
+    if (SDL_strstr(shaderProfile, "6_0")) {
+        // Need to roundtrip to SM 5.0
+        size_t spirv_size;
+        void *spirv = SDL_ShaderCross_CompileSPIRVFromHLSL(
+            hlslSource,
+            entrypoint,
+            shaderProfile,
+            &spirv_size);
+
+        if (spirv == NULL) {
+            return NULL;
+        }
+
+        if (SDL_strstr(shaderProfile, "vs")) {
+            shaderProfile = "vs_5_0";
+        } else if (SDL_strstr(shaderProfile, "ps")) {
+            shaderProfile = "ps_5_0";
+        } else if (SDL_strstr(shaderProfile, "cs")) {
+            shaderProfile = "cs_5_0";
+        } else {
+            SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%s", "Invalid shader profile!");
+            SDL_free(spirv);
+            return NULL;
+        }
+
+        hlslSource = SDL_ShaderCross_TranspileHLSLFromSPIRV(
+            spirv,
+            spirv_size,
+            entrypoint,
+            shaderProfile
+        );
+        SDL_free(spirv);
+
+        if (hlslSource == NULL) {
+            return NULL;
+        }
+    }
+
     ID3DBlob *blob = SDL_ShaderCross_INTERNAL_CompileDXBC(
         hlslSource,
         entrypoint,
@@ -605,6 +645,10 @@ void *SDL_ShaderCross_CompileDXBCFromHLSL(
     void *buffer = SDL_malloc(*size);
     SDL_memcpy(buffer, blob->lpVtbl->GetBufferPointer(blob), *size);
     blob->lpVtbl->Release(blob);
+
+    if (originalHlslSource != hlslSource) {
+        SDL_free((void *)hlslSource);
+    }
 
     return buffer;
 }
