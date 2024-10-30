@@ -53,6 +53,12 @@ typedef enum SDL_ShaderCross_ShaderStage
    SDL_SHADERCROSS_SHADERSTAGE_COMPUTE
 } SDL_ShaderCross_ShaderStage;
 
+typedef enum SDL_ShaderCross_ShaderModel
+{
+    SDL_SHADERCROSS_SHADERMODEL_5_0,
+    SDL_SHADERCROSS_SHADERMODEL_6_0
+} SDL_ShaderCross_ShaderModel;
+
 /**
  * Initializes SDL_gpu_shadercross
  *
@@ -99,14 +105,16 @@ extern SDL_DECLSPEC void * SDLCALL SDL_ShaderCross_TranspileMSLFromSPIRV(
  * \param bytecode the SPIRV bytecode.
  * \param bytecodeSize the length of the SPIRV bytecode.
  * \param entrypoint the entry point function name for the shader in UTF-8.
- * \param shaderProfile the HLSL shader profile to transpile with.
+ * \param shaderStage the shader stage to transpile the shader with.
+ * \param shaderModel the shader model to transpile the shader with.
  * \returns an SDL_malloc'd string containing HLSL code.
  */
 extern SDL_DECLSPEC void * SDLCALL SDL_ShaderCross_TranspileHLSLFromSPIRV(
     const Uint8 *bytecode,
     size_t bytecodeSize,
     const char *entrypoint,
-    const char *shaderProfile);
+    SDL_ShaderCross_ShaderStage shaderStage,
+    SDL_ShaderCross_ShaderModel shaderModel);
 
 /**
  * Compile DXBC bytecode from SPIRV code.
@@ -180,13 +188,13 @@ extern SDL_DECLSPEC SDL_GPUComputePipeline * SDLCALL SDL_ShaderCross_CompileComp
 extern SDL_DECLSPEC SDL_GPUShaderFormat SDLCALL SDL_ShaderCross_GetHLSLShaderFormats(void);
 
 /**
- * Compile to DXBC bytecode from HLSL code.
+ * Compile to DXBC bytecode from HLSL Shader Model 6.0 code via a SPIRV-Cross round trip.
  *
  * You must SDL_free the returned buffer once you are done with it.
  *
  * \param hlslSource the HLSL source code for the shader.
  * \param entrypoint the entry point function name for the shader in UTF-8.
- * \param shaderProfile the shader profile to compile the shader with.
+ * \param shaderStage the shader stage to compile the shader with.
  * \param size filled in with the bytecode buffer size.
  * \returns an SDL_malloc'd buffer containing DXBC bytecode.
  *
@@ -195,17 +203,17 @@ extern SDL_DECLSPEC SDL_GPUShaderFormat SDLCALL SDL_ShaderCross_GetHLSLShaderFor
 extern SDL_DECLSPEC void * SDLCALL SDL_ShaderCross_CompileDXBCFromHLSL(
     const char *hlslSource,
     const char *entrypoint,
-    const char *shaderProfile,
+    SDL_ShaderCross_ShaderStage shaderStage,
     size_t *size);
 
 /**
- * Compile to DXIL bytecode from HLSL code.
+ * Compile to DXIL bytecode from HLSL Shader Model 6.0 code via a SPIRV-Cross round trip.
  *
  * You must SDL_free the returned buffer once you are done with it.
  *
  * \param hlslSource the HLSL source code for the shader.
  * \param entrypoint the entry point function name for the shader in UTF-8.
- * \param shaderProfile the shader profile to compile the shader with.
+ * \param shaderStage the shader stage to compile the shader with.
  * \param size filled in with the bytecode buffer size.
  * \returns an SDL_malloc'd buffer containing DXIL bytecode.
  *
@@ -214,17 +222,17 @@ extern SDL_DECLSPEC void * SDLCALL SDL_ShaderCross_CompileDXBCFromHLSL(
 extern SDL_DECLSPEC void * SDLCALL SDL_ShaderCross_CompileDXILFromHLSL(
     const char *hlslSource,
     const char *entrypoint,
-    const char *shaderProfile,
+    SDL_ShaderCross_ShaderStage shaderStage,
     size_t *size);
 
 /**
- * Compile to SPIRV bytecode from HLSL code.
+ * Compile to SPIRV bytecode from HLSL Shader Model 6.0 code.
  *
  * You must SDL_free the returned buffer once you are done with it.
  *
  * \param hlslSource the HLSL source code for the shader.
  * \param entrypoint the entry point function name for the shader in UTF-8.
- * \param shaderProfile the shader profile to compile the shader with.
+ * \param shaderStage the shader stage to compile the shader with.
  * \param size filled in with the bytecode buffer size.
  * \returns an SDL_malloc'd buffer containing SPIRV bytecode.
  *
@@ -233,16 +241,16 @@ extern SDL_DECLSPEC void * SDLCALL SDL_ShaderCross_CompileDXILFromHLSL(
 extern SDL_DECLSPEC void * SDLCALL SDL_ShaderCross_CompileSPIRVFromHLSL(
     const char *hlslSource,
     const char *entrypoint,
-    const char *shaderProfile,
+    SDL_ShaderCross_ShaderStage shaderStage,
     size_t *size);
 
 /**
- * Compile an SDL GPU shader from HLSL code.
+ * Compile an SDL GPU shader from HLSL Shader Model 6.0 code.
  *
  * \param device the SDL GPU device.
  * \param createInfo a pointer to an SDL_GPUShaderCreateInfo.
  * \param hlslSource the HLSL source code for the shader.
- * \param shaderProfile the shader profile to compile the shader with.
+ * \param graphicsShaderStage the shader stage to compile the shader with.
  * \returns a compiled SDL_GPUShader
  *
  * \threadsafety It is safe to call this function from any thread.
@@ -251,15 +259,15 @@ extern SDL_DECLSPEC SDL_GPUShader * SDLCALL SDL_ShaderCross_CompileGraphicsShade
     SDL_GPUDevice *device,
     const SDL_GPUShaderCreateInfo *createInfo,
     const char *hlslSource,
-    const char *shaderProfile);
+    SDL_GPUShaderStage graphicsShaderStage);
 
 /**
- * Compile an SDL GPU compute pipeline from HLSL code.
+ * Compile an SDL GPU compute pipeline from HLSL Shader Model 6.0 code.
  *
  * \param device the SDL GPU device.
  * \param createInfo a pointer to an SDL_GPUComputePipelineCreateInfo.
  * \param hlslSource the HLSL source code for the shader.
- * \param shaderProfile the shader profile to compile the shader with.
+ * \param shaderStage the shader stage to compile the shader with.
  * \returns a compiled SDL_GPUComputePipeline
  *
  * \threadsafety It is safe to call this function from any thread.
@@ -267,8 +275,8 @@ extern SDL_DECLSPEC SDL_GPUShader * SDLCALL SDL_ShaderCross_CompileGraphicsShade
 extern SDL_DECLSPEC SDL_GPUComputePipeline * SDLCALL SDL_ShaderCross_CompileComputePipelineFromHLSL(
     SDL_GPUDevice *device,
     const SDL_GPUComputePipelineCreateInfo *createInfo,
-    const char *hlslSource,
-    const char *shaderProfile);
+    const char *hlslSource);
+
 #endif /* SDL_GPU_SHADERCROSS_HLSL */
 
 #endif /* SDL_GPU_SHADERCROSS_H */

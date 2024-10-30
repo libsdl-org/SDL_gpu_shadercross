@@ -42,7 +42,7 @@ void print_help(void)
     SDL_Log("  %-*s %s", column_width, "-d | --dest <value>", "Destination format. May be inferred from the filename. Values: [DXBC, DXIL, MSL, SPIRV, HLSL]");
     SDL_Log("  %-*s %s", column_width, "-t | --stage <value>", "Shader stage. May be inferred from the filename. Values: [vertex, fragment, compute]");
     SDL_Log("  %-*s %s", column_width, "-e | --entrypoint <value>", "Entrypoint function name. Default: \"main\".");
-    SDL_Log("  %-*s %s", column_width, "-m | --shadermodel <value>", "HLSL Shader Model. Only used with HLSL source or destination. Values: [50, 60]");
+    SDL_Log("  %-*s %s", column_width, "-m | --shadermodel <value>", "HLSL Shader Model. Only used with HLSL destination. Values: [5.0, 6.0]");
     SDL_Log("  %-*s %s", column_width, "-o | --output <value>", "Output file.");
 }
 
@@ -52,13 +52,14 @@ int main(int argc, char *argv[])
     bool sourceValid = false;
     bool destinationValid = false;
     bool stageValid = false;
+    bool shaderModelValid = false; // only required for HLSL destination
 
     bool spirvSource = false;
     ShaderCross_ShaderFormat destinationFormat = SHADERFORMAT_INVALID;
     SDL_ShaderCross_ShaderStage shaderStage = SDL_SHADERCROSS_SHADERSTAGE_VERTEX;
+    SDL_ShaderCross_ShaderModel shaderModel;
     char *outputFilename = NULL;
     char *entrypointName = "main";
-    int shaderModel = 0;
 
     char *filename = NULL;
     size_t fileSize = 0;
@@ -153,7 +154,17 @@ int main(int argc, char *argv[])
                     return 1;
                 }
                 i += 1;
-                shaderModel = SDL_atoi(argv[i]);
+                if (SDL_strcmp(argv[i], "5.0") == 0) {
+                    shaderModel = SDL_SHADERCROSS_SHADERMODEL_5_0;
+                    shaderModelValid = true;
+                } else if (SDL_strcmp(argv[i], "6.0") == 0) {
+                    shaderModel = SDL_SHADERCROSS_SHADERMODEL_6_0;
+                    shaderModelValid = true;
+                } else {
+                    SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%s is not a recognized HLSL Shader Model!", argv[i]);
+                    print_help();
+                    return 1;
+                }
             } else if (SDL_strcmp(arg, "-o") == 0 || SDL_strcmp(arg, "--output") == 0) {
                 if (i + 1 >= argc) {
                     SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%s requires an argument", arg);
@@ -290,25 +301,8 @@ int main(int argc, char *argv[])
             }
 
             case SHADERFORMAT_HLSL: {
-                char *profileName;
-                if (shaderModel == 50) {
-                    if (shaderStage == SDL_SHADERCROSS_SHADERSTAGE_VERTEX) {
-                        profileName = "vs_5_0";
-                    } else if (shaderStage == SDL_SHADERCROSS_SHADERSTAGE_FRAGMENT) {
-                        profileName = "ps_5_0";
-                    } else {
-                        profileName = "cs_5_0";
-                    }
-                } else if (shaderModel == 60) {
-                    if (shaderStage == SDL_SHADERCROSS_SHADERSTAGE_VERTEX) {
-                        profileName = "vs_6_0";
-                    } else if (shaderStage == SDL_SHADERCROSS_SHADERSTAGE_FRAGMENT) {
-                        profileName = "ps_6_0";
-                    } else {
-                        profileName = "cs_6_0";
-                    }
-                } else {
-                    SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%s", "Unrecognized shader model!");
+                if (!shaderModelValid) {
+                    SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%s", "HLSL destination requires a shader model specification!");
                     print_help();
                     return 1;
                 }
@@ -317,7 +311,8 @@ int main(int argc, char *argv[])
                     fileData,
                     fileSize,
                     entrypointName,
-                    profileName);
+                    shaderStage,
+                    shaderModel);
                 SDL_IOprintf(outputIO, "%s", buffer);
                 SDL_free(buffer);
                 break;
@@ -334,35 +329,12 @@ int main(int argc, char *argv[])
             }
         }
     } else {
-        char *profileName;
-        if (shaderModel == 50) {
-            if (shaderStage == SDL_SHADERCROSS_SHADERSTAGE_VERTEX) {
-                profileName = "vs_5_0";
-            } else if (shaderStage == SDL_SHADERCROSS_SHADERSTAGE_FRAGMENT) {
-                profileName = "ps_5_0";
-            } else {
-                profileName = "cs_5_0";
-            }
-        } else if (shaderModel == 60) {
-            if (shaderStage == SDL_SHADERCROSS_SHADERSTAGE_VERTEX) {
-                profileName = "vs_6_0";
-            } else if (shaderStage == SDL_SHADERCROSS_SHADERSTAGE_FRAGMENT) {
-                profileName = "ps_6_0";
-            } else {
-                profileName = "cs_6_0";
-            }
-        } else {
-            SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%s", "Unrecognized shader model!");
-            print_help();
-            return 1;
-        }
-
         switch (destinationFormat) {
             case SHADERFORMAT_DXBC: {
                 Uint8 *buffer = SDL_ShaderCross_CompileDXBCFromHLSL(
                     fileData,
                     entrypointName,
-                    profileName,
+                    shaderStage,
                     &bytecodeSize);
                 SDL_WriteIO(outputIO, buffer, bytecodeSize);
                 SDL_free(buffer);
@@ -373,7 +345,7 @@ int main(int argc, char *argv[])
                 Uint8 *buffer = SDL_ShaderCross_CompileDXILFromHLSL(
                     fileData,
                     entrypointName,
-                    profileName,
+                    shaderStage,
                     &bytecodeSize);
                 SDL_WriteIO(outputIO, buffer, bytecodeSize);
                 SDL_free(buffer);
@@ -384,7 +356,7 @@ int main(int argc, char *argv[])
                 void *spirv = SDL_ShaderCross_CompileSPIRVFromHLSL(
                     fileData,
                     entrypointName,
-                    profileName,
+                    shaderStage,
                     &bytecodeSize);
                 if (spirv == NULL) {
                     SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%s", "Failed to compile SPIR-V!");
@@ -405,7 +377,7 @@ int main(int argc, char *argv[])
                 Uint8 *buffer = SDL_ShaderCross_CompileSPIRVFromHLSL(
                     fileData,
                     entrypointName,
-                    profileName,
+                    shaderStage,
                     &bytecodeSize);
                 SDL_WriteIO(outputIO, buffer, bytecodeSize);
                 SDL_free(buffer);
@@ -413,8 +385,34 @@ int main(int argc, char *argv[])
             }
 
             case SHADERFORMAT_HLSL: {
-                SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Input and output are both HLSL. Did you mean to do that?");
-                return 1;
+                if (!shaderModelValid) {
+                    SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%s", "HLSL destination requires a shader model specification!");
+                    print_help();
+                    return 1;
+                }
+
+                void *spirv = SDL_ShaderCross_CompileSPIRVFromHLSL(
+                    fileData,
+                    entrypointName,
+                    shaderStage,
+                    &bytecodeSize);
+
+                if (spirv == NULL) {
+                    SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%s", "Failed to compile HLSL to SPIRV!");
+                    return 1;
+                }
+
+                char *buffer = SDL_ShaderCross_TranspileHLSLFromSPIRV(
+                    spirv,
+                    bytecodeSize,
+                    entrypointName,
+                    shaderStage,
+                    shaderModel);
+
+                SDL_IOprintf(outputIO, "%s", buffer);
+                SDL_free(spirv);
+                SDL_free(buffer);
+                break;
             }
 
             case SHADERFORMAT_INVALID: {
