@@ -553,7 +553,7 @@ bool check_for_metal_tools(void)
     // Check for the Metal Developer Tools...
     // FIXME: All the process calls need their Windows equivalents!
     SDL_PropertiesID props = SDL_CreateProperties();
-    SDL_SetPointerProperty(props, SDL_PROP_PROCESS_CREATE_ARGS_POINTER, (const char*[]){ "xcrun", "--help", NULL });
+    SDL_SetPointerProperty(props, SDL_PROP_PROCESS_CREATE_ARGS_POINTER, (char*[]){ "xcrun", "--help", NULL });
     SDL_SetNumberProperty(props, SDL_PROP_PROCESS_CREATE_STDERR_NUMBER, SDL_PROCESS_STDIO_NULL);
     SDL_Process *process = SDL_CreateProcessWithProperties(props);
     SDL_DestroyProperties(props);
