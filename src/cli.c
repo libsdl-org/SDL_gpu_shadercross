@@ -547,15 +547,14 @@ int main(int argc, char *argv[])
 
 bool check_for_metal_tools(void)
 {
+#if defined(SDL_PLATFORM_MACOS) || defined(SDL_PLATFORM_WINDOWS)
+
 #if defined(SDL_PLATFORM_MACOS)
     char *compilerName = "xcrun";
     char *cantFindMessage = "Install Xcode or the Xcode Command Line Tools.";
-#elif defined(SDL_PLATFORM_WIN32)
+#else
     char *compilerName = "metal";
     char *cantFindMessage = "Install Metal Developer Tools for Windows 5.0 beta 2 or newer (https://developer.apple.com/download/all/?q=metal%20developer%20tools%20for%20windows) and add \"C:\\Program Files\\Metal Developer Tools\\bin\" to your PATH.";
-#else
-    SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Compiling to METALLIB is not supported on this platform!");
-    return false;
 #endif
 
     // Check for the Metal Developer Tools...
@@ -573,27 +572,30 @@ bool check_for_metal_tools(void)
 
     SDL_DestroyProcess(process);
     return true;
+
+#else
+    SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Compiling to METALLIB is not supported on this platform!");
+    return false;
+#endif
 }
 
 int compile_metallib(ShaderCross_Platform platform, const char *outputFilename)
 {
-    const char *sdkString;
     const char *stdString;
     const char *minversion;
     if (platform == PLATFORM_METAL_MACOS) {
-        sdkString = "macosx";
         stdString = "-std=macos-metal2.0";
         minversion = "-mmacosx-version-min=10.13";
     } else {
-        sdkString = "iphoneos";
         stdString = "-std=ios-metal2.0";
         minversion = "-miphoneos-version-min=13.0";
     }
 
 #if defined(SDL_PLATFORM_MACOS)
+    const char* sdkString = (platform == PLATFORM_METAL_MACOS) ? "macosx" : "iphoneos";
     const char* compileToIRCommand[] = { "xcrun", "-sdk", sdkString, "metal", stdString, minversion, "-Wall", "-O3", "-c", "tmp.metal", "-o", "tmp.ir", NULL };
     const char* compileToMetallibCommand[] = { "xcrun", "-sdk", sdkString, "metallib", "tmp.ir", "-o", outputFilename, NULL };
-#elif defined(SDL_PLATFORM_WINDOWS)
+#else
     const char* compileToIRCommand[] = { "metal", stdString, minversion, "-Wall", "-O3", "-c", "tmp.metal", "-o", "tmp.ir", NULL};
     const char* compileToMetallibCommand[] = { "metallib", "tmp.ir", "-o", outputFilename, NULL};
 #endif
