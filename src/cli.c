@@ -59,7 +59,6 @@ void print_help(void)
 
 int main(int argc, char *argv[])
 {
-
     bool sourceValid = false;
     bool destinationValid = false;
     bool stageValid = false;
@@ -344,7 +343,6 @@ int main(int argc, char *argv[])
 
                 if (!check_for_metal_tools())
                 {
-                    SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "xcrun not found! Is Xcode installed and activated?");
                     return 1;
                 }
 
@@ -454,7 +452,6 @@ int main(int argc, char *argv[])
 
                 if (!check_for_metal_tools())
                 {
-                    SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "xcrun not found! Is Xcode installed and activated?");
                     return 1;
                 }
 
@@ -550,17 +547,30 @@ int main(int argc, char *argv[])
 
 bool check_for_metal_tools(void)
 {
+#if defined(SDL_PLATFORM_MACOS)
+    char *compilerName = "xcrun";
+    char *cantFindMessage = "Install Xcode or the Xcode Command Line Tools.";
+#elif defined(SDL_PLATFORM_WIN32)
+    char *compilerName = "metal";
+    char *cantFindMessage = "Install Metal Developer Tools for Windows 5.0 beta 2 or newer (https://developer.apple.com/download/all/?q=metal%20developer%20tools%20for%20windows) and add \"C:\\Program Files\\Metal Developer Tools\\bin\" to your PATH.";
+#else
+    SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Compiling to METALLIB is not supported on this platform!");
+    return false;
+#endif
+
     // Check for the Metal Developer Tools...
-    // FIXME: All the process calls need their Windows equivalents!
     SDL_PropertiesID props = SDL_CreateProperties();
-    SDL_SetPointerProperty(props, SDL_PROP_PROCESS_CREATE_ARGS_POINTER, (char*[]){ "xcrun", "--help", NULL });
+    SDL_SetPointerProperty(props, SDL_PROP_PROCESS_CREATE_ARGS_POINTER, (char*[]){ compilerName, "--help", NULL });
+    SDL_SetNumberProperty(props, SDL_PROP_PROCESS_CREATE_STDOUT_NUMBER, SDL_PROCESS_STDIO_NULL);
     SDL_SetNumberProperty(props, SDL_PROP_PROCESS_CREATE_STDERR_NUMBER, SDL_PROCESS_STDIO_NULL);
     SDL_Process *process = SDL_CreateProcessWithProperties(props);
     SDL_DestroyProperties(props);
 
     if (process == NULL) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%s not found! %s", compilerName, cantFindMessage);
         return false;
     }
+
     SDL_DestroyProcess(process);
     return true;
 }
@@ -580,8 +590,16 @@ int compile_metallib(ShaderCross_Platform platform, const char *outputFilename)
         minversion = "-miphoneos-version-min=13.0";
     }
 
+#if defined(SDL_PLATFORM_MACOS)
+    const char* compileToIRCommand[] = { "xcrun", "-sdk", sdkString, "metal", stdString, minversion, "-Wall", "-O3", "-c", "tmp.metal", "-o", "tmp.ir", NULL };
+    const char* compileToMetallibCommand[] = { "xcrun", "-sdk", sdkString, "metallib", "tmp.ir", "-o", outputFilename, NULL };
+#elif defined(SDL_PLATFORM_WINDOWS)
+    const char* compileToIRCommand[] = { "metal", stdString, minversion, "-Wall", "-O3", "-c", "tmp.metal", "-o", "tmp.ir", NULL};
+    const char* compileToMetallibCommand[] = { "metallib", "tmp.ir", "-o", outputFilename, NULL};
+#endif
+
     int exitcode;
-    SDL_Process *process = SDL_CreateProcess((const char*[]){ "xcrun", "-sdk", sdkString, "metal", stdString, minversion, "-Wall", "-O3", "-c", "tmp.metal", "-o", "tmp.ir", NULL }, true);
+    SDL_Process *process = SDL_CreateProcess(compileToIRCommand, true);
     SDL_WaitProcess(process, true, &exitcode);
     SDL_RemovePath("tmp.metal");
     if (exitcode != 0) {
@@ -589,7 +607,7 @@ int compile_metallib(ShaderCross_Platform platform, const char *outputFilename)
     }
     SDL_DestroyProcess(process);
 
-    process = SDL_CreateProcess((const char*[]){ "xcrun", "-sdk", sdkString, "metallib", "tmp.ir", "-o", outputFilename, NULL }, true);
+    process = SDL_CreateProcess(compileToMetallibCommand, true);
     SDL_WaitProcess(process, true, &exitcode);
     SDL_RemovePath("tmp.ir");
     if (exitcode != 0) {
