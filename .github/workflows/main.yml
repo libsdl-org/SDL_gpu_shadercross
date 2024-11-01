@@ -6,6 +6,7 @@ jobs:
   Build:
     name: ${{ matrix.platform.name }}
     runs-on: ${{ matrix.platform.os }}
+    container: ${{ matrix.platform.container }}
 
     defaults:
       run:
@@ -15,10 +16,11 @@ jobs:
       fail-fast: false
       matrix:
         platform:
-          - { name: Windows (MSVC),       os: windows-2019, shell: sh, msvc: true, artifact: 'SDL3_gpu_shadercross-VC-x64' }
-          - { name: Windows (mingw64),    os: windows-latest, shell: 'msys2 {0}', msystem: mingw64, msys-env: mingw-w64-x86_64, artifact: 'SDL3_gpu_shadercross-mingw64' }
-          - { name: Linux,                os: ubuntu-20.04,   shell: sh, artifact: 'SDL3_gpu_shadercross-linux-x64' }
-          - { name: Macos,                os: macos-latest,   shell: sh, artifact: 'SDL3_gpu_shadercross-macos-x64' }
+          - { name: Windows (MSVC),                os: windows-2019, shell: sh, msvc: true, artifact: 'SDL3_gpu_shadercross-VC-x64' }
+          - { name: Windows (mingw64),             os: windows-latest, shell: 'msys2 {0}', msystem: mingw64, msys-env: mingw-w64-x86_64, artifact: 'SDL3_gpu_shadercross-mingw64' }
+          - { name: Ubuntu 20.04,                  os: ubuntu-20.04,   shell: sh, artifact: 'SDL3_gpu_shadercross-linux-x64' }
+          - { name: Steam Linux Runtime (Sniper),  os: ubuntu-latest,  shell: sh, artifact: 'SDL3_gpu_shadercross-slrsniper', container: 'registry.gitlab.steamos.cloud/steamrt/sniper/sdk:beta' }
+          - { name: macOS,                         os: macos-latest,   shell: sh, artifact: 'SDL3_gpu_shadercross-macos-x64' }
 
 
     steps:
@@ -27,7 +29,7 @@ jobs:
           submodules: recursive
       - name: Set up Ninja
         uses: ./.github/actions/setup-ninja
-        if: ${{ !contains(matrix.platform.shell, 'msys2') }}
+        if: ${{ !contains(matrix.platform.shell, 'msys2') && !contains(matrix.platform.container, 'steamrt') }}
       - uses: ilammy/msvc-dev-cmd@v1
         if: ${{ matrix.platform.msvc }}
         with:
@@ -49,8 +51,9 @@ jobs:
           version: 3-head
           sdl-test: true
           shell: ${{ matrix.platform.shell }}
+          discriminator: ${{ matrix.platform.artifact }}
       - name: Install Linux requirements
-        if: ${{ runner.os == 'Linux' }}
+        if: ${{ contains(matrix.platform.os, 'ubuntu') }}
         run: |
           # patchelf is needed to fix the runpath of libSDL3.so.0
           wget https://github.com/NixOS/patchelf/releases/download/0.18.0/patchelf-0.18.0-x86_64.tar.gz
