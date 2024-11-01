@@ -279,4 +279,8 @@ extern SDL_DECLSPEC SDL_GPUComputePipeline * SDLCALL SDL_ShaderCross_CompileComp
 
 #endif /* SDL_GPU_SHADERCROSS_HLSL */
 
+#ifdef __cplusplus
+}
+#endif
+
 #endif /* SDL_GPU_SHADERCROSS_H */
