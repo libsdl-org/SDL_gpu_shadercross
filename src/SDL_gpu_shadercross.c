@@ -762,7 +762,7 @@ SDL_GPUComputePipeline *SDL_ShaderCross_CompileComputePipelineFromHLSL(
 #error SDL_GPU_SHADERCROSS_HLSL must be enabled for SDL_GPU_SHADERCROSS_SPIRVCROSS!
 #endif /* !SDL_GPU_SHADERCROSS_HLSL */
 
-#include "spirv_cross_c.h"
+#include <spirv_cross_c.h>
 
 #define SPVC_ERROR(func) \
     SDL_SetError(#func " failed: %s", spvc_context_get_last_error_string(context))
