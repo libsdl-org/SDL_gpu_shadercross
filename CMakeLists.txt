@@ -17,18 +17,33 @@ include("${CMAKE_CURRENT_LIST_DIR}/cmake/sdlplatform.cmake")
 
 find_package(SDL3 REQUIRED COMPONENTS SDL3-shared)
 
+if(BUILD_SHARED_LIBS)
+	set(SDLGPUSHADERCROSS_SHARED_DEFAULT ON)
+	set(SDLGPUSHADERCROSS_STATIC_DEFAULT OFF)
+else()
+	set(SDLGPUSHADERCROSS_SHARED_DEFAULT OFF)
+	set(SDLGPUSHADERCROSS_STATIC_DEFAULT ON)
+endif()
+
 # Options
-option(BUILD_STATIC "Build static library" ON)
-option(BUILD_CLI "Build command line executable" ON)
-cmake_dependent_option(BUILD_CLI_STATIC "Link CLI with static libraries" OFF "BUILD_CLI;BUILD_STATIC;TARGET SDL3::SDL3-static" OFF)
-option(ENABLE_WERROR "Enable Werror" OFF)
-option(ENABLE_INSTALL "Enable installation" OFF)
-cmake_dependent_option(ENABLE_INSTALL_CPACK "Enable CPack installation" OFF "ENABLE_INSTALL" OFF)
-cmake_dependent_option(ENABLE_INSTALL_DEPS "Download, build and install dependencies" OFF "ENABLE_INSTALL" OFF)
+option(SDLGPUSHADERCROSS_SHARED "Build shared SDL_gpu_shadercross library" ${SDLGPUSHADERCROSS_SHARED_DEFAULT})
+option(SDLGPUSHADERCROSS_STATIC "Build static SDL_gpu_shadercross library" ${SDLGPUSHADERCROSS_STATIC_DEFAULT})
+option(SDLGPUSHADERCROSS_LOAD_DYNAMIC "Load dependencies using SDL_LoadObject" ON)
+cmake_dependent_option(SDLGPUSHADERCROSS_LINK_STATIC "Link to static library variants of dependencies" OFF "NOT SDLGPUSHADERCROSS_LOAD_DYNAMIC" OFF)
+option(SDLGPUSHADERCROSS_CLI "Build command line executable" ON)
+cmake_dependent_option(SDLGPUSHADERCROSS_CLI_STATIC "Link CLI with static libraries" OFF "SDLGPUSHADERCROSS_CLI;SDLGPUSHADERCROSS_STATIC;TARGET SDL3::SDL3-static" OFF)
+option(SDLGPUSHADERCROSS_WERROR "Enable Werror" OFF)
+option(SDLGPUSHADERCROSS_INSTALL "Enable installation" OFF)
+cmake_dependent_option(SDLGPUSHADERCROSS_INSTALL_CPACK "Enable CPack installation" OFF "SDLGPUSHADERCROSS_INSTALL" OFF)
+cmake_dependent_option(SDLGPUSHADERCROSS_INSTALL_DEPS "Download, build and install dependencies" OFF "SDLGPUSHADERCROSS_INSTALL" OFF)
 
 sdl_calculate_derived_version_variables(${MAJOR_VERSION} ${MINOR_VERSION} ${MICRO_VERSION})
 SDL_DetectTargetCPUArchitectures(SDL_CPU_NAMES)
 SDL_DetectCMakePlatform()
+
+if(NOT SDLGPUSHADERCROSS_SHARED AND NOT SDLGPUSHADERCROSS_STATIC)
+	message(FATAL_ERROR "SDLGPUSHADERCROSS_SHARED and SDLGPUSHADERCROSS_STATIC cannot be both disabled")
+endif()
 
 # Platform Flags
 if(APPLE)
@@ -50,47 +65,49 @@ set(SOURCE_FILES
 	src/spirv.h
 )
 
-add_library(SDL3_gpu_shadercross-shared SHARED ${SOURCE_FILES})
-add_library(SDL3_gpu_shadercross::SDL3_gpu_shadercross ALIAS SDL3_gpu_shadercross-shared)
+set(SDL3_gpu_shadercross_targets)
+if(SDLGPUSHADERCROSS_SHARED)
+	list(APPEND SDL3_gpu_shadercross_targets SDL3_gpu_shadercross-shared)
+	add_library(SDL3_gpu_shadercross-shared SHARED ${SOURCE_FILES})
+	add_library(SDL3_gpu_shadercross::SDL3_gpu_shadercross ALIAS SDL3_gpu_shadercross-shared)
 
-set_property(TARGET SDL3_gpu_shadercross-shared PROPERTY DEFINE_SYMBOL DLL_EXPORT)
-sdl_add_warning_options(SDL3_gpu_shadercross-shared WARNING_AS_ERROR ${ENABLE_WERROR})
-sdl_target_link_option_version_file(SDL3_gpu_shadercross-shared "${CMAKE_CURRENT_SOURCE_DIR}/src/SDL_gpu_shadercross.sym")
+	set_property(TARGET SDL3_gpu_shadercross-shared PROPERTY DEFINE_SYMBOL DLL_EXPORT)
+	sdl_target_link_option_version_file(SDL3_gpu_shadercross-shared "${CMAKE_CURRENT_SOURCE_DIR}/src/SDL_gpu_shadercross.sym")
 
-# Build flags
-if(WIN32)
-	target_sources(SDL3_gpu_shadercross-shared PRIVATE "src/version.rc")
-	set_property(TARGET SDL3_gpu_shadercross-shared PROPERTY PREFIX "")
+	# Build flags
+	if(WIN32)
+		target_sources(SDL3_gpu_shadercross-shared PRIVATE "src/version.rc")
+		set_property(TARGET SDL3_gpu_shadercross-shared PROPERTY PREFIX "")
+	endif()
+
+	# SDL3_gpu_shadercross folders as includes, for other targets to consume
+	target_include_directories(SDL3_gpu_shadercross-shared PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>")
+	target_include_directories(SDL3_gpu_shadercross-shared PUBLIC "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>")
+
+	# MinGW builds should statically link libgcc
+	if(MINGW)
+		target_link_options(SDL3_gpu_shadercross-shared PRIVATE "-static-libgcc")
+	endif()
+
+	# Soname
+	set_target_properties(SDL3_gpu_shadercross-shared PROPERTIES
+		OUTPUT_NAME "SDL3_gpu_shadercross"
+		SOVERSION "${SO_VERSION_MAJOR}"
+		VERSION "${SO_VERSION}"
+	)
+
+	target_link_libraries(SDL3_gpu_shadercross-shared PRIVATE
+		SDL3::SDL3-shared
+	)
 endif()
-target_compile_features(SDL3_gpu_shadercross-shared PRIVATE c_std_99)
 
-# SDL3_gpu_shadercross folders as includes, for other targets to consume
-target_include_directories(SDL3_gpu_shadercross-shared PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>")
-target_include_directories(SDL3_gpu_shadercross-shared PUBLIC "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>")
 
-# MinGW builds should statically link libgcc
-if(MINGW)
-	target_link_options(SDL3_gpu_shadercross-shared PRIVATE "-static-libgcc")
-endif()
-
-# Soname
-set_target_properties(SDL3_gpu_shadercross-shared PROPERTIES
-	OUTPUT_NAME "SDL3_gpu_shadercross"
-	SOVERSION "${SO_VERSION_MAJOR}"
-	VERSION "${SO_VERSION}"
-)
-
-target_link_libraries(SDL3_gpu_shadercross-shared PRIVATE
-	SDL3::SDL3-shared
-)
-
-if(BUILD_STATIC)
+if(SDLGPUSHADERCROSS_STATIC)
+	list(APPEND SDL3_gpu_shadercross_targets SDL3_gpu_shadercross-static)
 	find_package(SDL3 REQUIRED COMPONENTS Headers)
 
 	add_library(SDL3_gpu_shadercross-static STATIC ${SOURCE_FILES})
 	add_library(SDL3_gpu_shadercross::SDL3_gpu_shadercross-static ALIAS SDL3_gpu_shadercross-static)
-	sdl_add_warning_options(SDL3_gpu_shadercross-static WARNING_AS_ERROR ${ENABLE_WERROR})
-	target_compile_features(SDL3_gpu_shadercross-static PRIVATE c_std_99)
 
 	if(NOT MSVC)
 		set_property(TARGET SDL3_gpu_shadercross-static PROPERTY OUTPUT_NAME "SDL3_gpu_shadercross")
@@ -105,6 +122,11 @@ if(BUILD_STATIC)
 	)
 endif()
 
+foreach(target IN LISTS SDL3_gpu_shadercross_targets)
+	sdl_add_warning_options(${target} WARNING_AS_ERROR ${SDLGPUSHADERCROSS_WERROR})
+	target_compile_features(${target} PRIVATE c_std_99)
+endforeach()
+
 if(NOT TARGET SDL3_gpu_shadercross::SDL3_gpu_shadercross)
 	if(TARGET SDL3_gpu_shadercross-shared)
 		add_library(SDL3_gpu_shadercross::SDL3_gpu_shadercross ALIAS SDL3_gpu_shadercross-shared)
@@ -113,11 +135,11 @@ if(NOT TARGET SDL3_gpu_shadercross::SDL3_gpu_shadercross)
 	endif()
 endif()
 
-if(BUILD_CLI)
+if(SDLGPUSHADERCROSS_CLI)
 	add_executable(shadercross src/cli.c)
-	sdl_add_warning_options(shadercross WARNING_AS_ERROR ${ENABLE_WERROR})
+	sdl_add_warning_options(shadercross WARNING_AS_ERROR ${SDLGPUSHADERCROSS_WERROR})
 
-	if(BUILD_CLI_STATIC)
+	if(SDLGPUSHADERCROSS_CLI_STATIC)
 		target_link_libraries(shadercross PRIVATE SDL3_gpu_shadercross::SDL3_gpu_shadercross-static)
 		target_link_libraries(shadercross PRIVATE SDL3::SDL3-static)
 	else()
@@ -126,7 +148,7 @@ if(BUILD_CLI)
 	endif()
 endif()
 
-if(ENABLE_INSTALL)
+if(SDLGPUSHADERCROSS_INSTALL)
 	include(GNUInstallDirs)
 	if(WIN32 AND NOT MINGW)
 		set(INSTALL_CMAKEDIR_ROOT_DEFAULT "cmake")
@@ -171,7 +193,7 @@ if(ENABLE_INSTALL)
 		FILES "${CMAKE_CURRENT_SOURCE_DIR}/include/SDL3_gpu_shadercross/SDL_gpu_shadercross.h"
 		DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/SDL3_gpu_shadercross" COMPONENT DEVEL
 	)
-	if(BUILD_CLI)
+	if(SDLGPUSHADERCROSS_CLI)
 		install(TARGETS shadercross RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")
 	endif()
 
@@ -206,7 +228,7 @@ if(ENABLE_INSTALL)
 		DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/licenses/${PROJECT_NAME}"
 		COMPONENT library
 	)
-	if(ENABLE_INSTALL_CPACK)
+	if(SDLGPUSHADERCROSS_INSTALL_CPACK)
 		if(MSVC)
 			set(CPACK_GENERATOR "ZIP")
 		else()
@@ -226,7 +248,7 @@ set(DXC_LINUX_X64_HASH "SHA256=b58725ac191df0686994fb9d54d27ee8dd3f180b023d56273
 set(DXC_WINDOWS_X86_X64_ARM64_URL "https://github.com/microsoft/DirectXShaderCompiler/releases/download/v1.8.2407/dxc_2024_07_31.zip")
 set(DXC_WINDOWS_X86_X64_ARM64_HASH "SHA256=e2627f004f0f9424d8c71ea1314d04f38c5a5096884ae9217f1f18bd320267b5")
 
-if(ENABLE_INSTALL_DEPS)
+if(SDLGPUSHADERCROSS_INSTALL_DEPS)
 	set(chmod_0755 OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
 	if(APPLE)
 		set(rpath_origin "@executable_path")
@@ -240,7 +262,7 @@ if(ENABLE_INSTALL_DEPS)
 	endif()
 
 	# Install SDL3
-	if(BUILD_CLI AND NOT BUILD_CLI_STATIC)
+	if(SDLGPUSHADERCROSS_CLI AND NOT SDLGPUSHADERCROSS_CLI_STATIC)
 		install(IMPORTED_RUNTIME_ARTIFACTS SDL3::SDL3-shared RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}" LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}")
 	endif()
 
