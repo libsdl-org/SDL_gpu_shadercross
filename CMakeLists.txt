@@ -122,9 +122,11 @@ if(SDLGPUSHADERCROSS_STATIC)
 	)
 endif()
 
+find_package(spirv_cross_c_shared REQUIRED)
 foreach(target IN LISTS SDL3_gpu_shadercross_targets)
 	sdl_add_warning_options(${target} WARNING_AS_ERROR ${SDLGPUSHADERCROSS_WERROR})
 	target_compile_features(${target} PRIVATE c_std_99)
+	target_link_libraries(${target} PRIVATE spirv-cross-c-shared)
 endforeach()
 
 if(NOT TARGET SDL3_gpu_shadercross::SDL3_gpu_shadercross)
