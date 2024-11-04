@@ -16,7 +16,7 @@ include("${CMAKE_CURRENT_LIST_DIR}/cmake/sdlcpu.cmake")
 include("${CMAKE_CURRENT_LIST_DIR}/cmake/sdlplatform.cmake")
 
 if(NOT TARGET SDL3::Headers OR NOT TARGET SDL3::SDL3-shared)
-    find_package(SDL3 ${SDL_REQUIRED_VERSION} REQUIRED COMPONENTS SDL3::Headers SDL3::SDL3-shared)
+    find_package(SDL3 ${SDL_REQUIRED_VERSION} REQUIRED COMPONENTS Headers SDL3-shared)
 endif()
 
 if(BUILD_SHARED_LIBS)
@@ -107,7 +107,7 @@ endif()
 if(SDLGPUSHADERCROSS_STATIC)
 	list(APPEND SDL3_gpu_shadercross_targets SDL3_gpu_shadercross-static)
 	if(NOT TARGET SDL3::Headers OR NOT TARGET SDL3::SDL3)
-		find_package(SDL3 ${SDL_REQUIRED_VERSION} REQUIRED COMPONENTS SDL3::Headers SDL3::SDL3)
+		find_package(SDL3 ${SDL_REQUIRED_VERSION} REQUIRED COMPONENTS Headers)
 	endif()
 
 	add_library(SDL3_gpu_shadercross-static STATIC ${SOURCE_FILES})
