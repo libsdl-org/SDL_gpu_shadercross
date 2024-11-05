@@ -82,7 +82,7 @@ jobs:
             -DSDLGPUSHADERCROSS_INSTALL=ON \
             -DSDLGPUSHADERCROSS_INSTALL_DEPS=ON \
             -DSDLGPUSHADERCROSS_INSTALL_CPACK=ON \
-            -DCMAKE_INSTALL_PREFIX=${{ github.workspace }}/prefix
+            -DCMAKE_INSTALL_PREFIX="${PWD}/prefix"
 
       - name: Build (CMake)
         id: build
@@ -105,7 +105,7 @@ jobs:
         run: |
           cmake -S cmake/test -B cmake_config_build \
             -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_PREFIX_PATH="${{ github.workspace }}/prefix" \
+            -DCMAKE_PREFIX_PATH="${PWD}/prefix" \
             -GNinja
           cmake --build cmake_config_build --verbose
 
