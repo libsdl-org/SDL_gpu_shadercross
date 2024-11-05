@@ -57,7 +57,7 @@ int main(int argc, char *argv[])
     bool spirvSource = false;
     ShaderCross_ShaderFormat destinationFormat = SHADERFORMAT_INVALID;
     SDL_ShaderCross_ShaderStage shaderStage = SDL_SHADERCROSS_SHADERSTAGE_VERTEX;
-    SDL_ShaderCross_ShaderModel shaderModel;
+    SDL_ShaderCross_ShaderModel shaderModel = SDL_SHADERCROSS_SHADERMODEL_INVALID;
     char *outputFilename = NULL;
     char *entrypointName = "main";
 
@@ -313,6 +313,11 @@ int main(int argc, char *argv[])
                     entrypointName,
                     shaderStage,
                     shaderModel);
+
+                if (buffer == NULL) {
+                    SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%s", "Failed to transpile HLSL from SPIRV!");
+                    return 1;
+                }
                 SDL_IOprintf(outputIO, "%s", buffer);
                 SDL_free(buffer);
                 break;
@@ -408,6 +413,11 @@ int main(int argc, char *argv[])
                     entrypointName,
                     shaderStage,
                     shaderModel);
+
+                if (buffer == NULL) {
+                    SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%s", "Failed to transpile HLSL from SPIRV!");
+                    return 1;
+                }
 
                 SDL_IOprintf(outputIO, "%s", buffer);
                 SDL_free(spirv);

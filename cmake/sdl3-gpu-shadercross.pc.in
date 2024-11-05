@@ -4,10 +4,10 @@ libdir=${prefix}/@CMAKE_INSTALL_LIBDIR@
 includedir=${prefix}/@CMAKE_INSTALL_INCLUDEDIR@
 
 Name: @PROJECT_NAME@
-Description: image loading library for Simple DirectMedia Layer
+Description: Support SPIR-V and HLSL on various backends
 Version: @PROJECT_VERSION@
 Requires: sdl3 >= @SDL_REQUIRED_VERSION@
-Libs: -L${libdir} -lSDL_gpu_shadercross
+Libs: -L${libdir} -lSDL3_gpu_shadercross
 Requires.private: @PC_REQUIRES@
 Libs.private: @PC_LIBS@
 Cflags: -I${includedir}
