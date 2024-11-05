@@ -57,7 +57,7 @@ int main(int argc, char *argv[])
     bool spirvSource = false;
     ShaderCross_ShaderFormat destinationFormat = SHADERFORMAT_INVALID;
     SDL_ShaderCross_ShaderStage shaderStage = SDL_SHADERCROSS_SHADERSTAGE_VERTEX;
-    SDL_ShaderCross_ShaderModel shaderModel = 0;
+    SDL_ShaderCross_ShaderModel shaderModel = SDL_SHADERCROSS_SHADERMODEL_INVALID;
     char *outputFilename = NULL;
     char *entrypointName = "main";
 
