@@ -82,7 +82,7 @@ jobs:
             -DSDLGPUSHADERCROSS_INSTALL=ON \
             -DSDLGPUSHADERCROSS_INSTALL_DEPS=ON \
             -DSDLGPUSHADERCROSS_INSTALL_CPACK=ON \
-            -DCMAKE_INSTALL_PREFIX=prefix
+            -DCMAKE_INSTALL_PREFIX=${{ github.workspace }}/prefix
 
       - name: Build (CMake)
         id: build
