@@ -19,7 +19,7 @@ jobs:
           - { name: Windows (MSVC),                os: windows-2019,   build-spirv-cross: true,  vendored: false, shell: sh, msvc: true, artifact: 'SDL3_gpu_shadercross-VC-x64' }
           - { name: Windows (mingw64),             os: windows-latest, build-spirv-cross: false, vendored: false, shell: 'msys2 {0}', msystem: mingw64, msys-env: mingw-w64-x86_64, artifact: 'SDL3_gpu_shadercross-mingw64' }
           - { name: Ubuntu 22.04,                  os: ubuntu-22.04,   build-spirv-cross: true,  vendored: false, shell: sh, artifact: 'SDL3_gpu_shadercross-linux-x64' }
-          - { name: Steam Linux Runtime (Sniper),  os: ubuntu-latest,  build-spirv-cross: true,  vendored: true, shell: sh, artifact: 'SDL3_gpu_shadercross-slrsniper', container: 'registry.gitlab.steamos.cloud/steamrt/sniper/sdk:beta' }
+          - { name: Steam Linux Runtime (Sniper),  os: ubuntu-latest,  build-spirv-cross: false,  vendored: true, shell: sh, artifact: 'SDL3_gpu_shadercross-slrsniper', container: 'registry.gitlab.steamos.cloud/steamrt/sniper/sdk:beta' }
           - { name: macOS,                         os: macos-latest,   build-spirv-cross: true,  vendored: true,  shell: sh, artifact: 'SDL3_gpu_shadercross-macos-arm64' }
 
     steps:
