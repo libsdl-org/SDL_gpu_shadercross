@@ -138,6 +138,7 @@ else()
 		endif()
 	endif()
 
+	set(DirectXShaderCompiler_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/external/DirectXShaderCompiler-binaries")
 	find_package(DirectXShaderCompiler REQUIRED)
 endif()
 
