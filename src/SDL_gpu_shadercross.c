@@ -50,29 +50,12 @@ typedef void IDxcIncludeHandler; /* hack, unused */
 #ifdef DXCOMPILER_DLL
 #undef DXCOMPILER_DLL
 #endif
-#if defined(_WIN32)
 #if defined(_GAMING_XBOX_SCARLETT)
 #define DXCOMPILER_DLL "dxcompiler_xs.dll"
 #elif defined(_GAMING_XBOX_XBOXONE)
 #define DXCOMPILER_DLL "dxcompiler_x.dll"
 #else
 #define DXCOMPILER_DLL "dxcompiler.dll"
-#endif
-#elif defined(__APPLE__)
-#define DXCOMPILER_DLL "libdxcompiler.dylib"
-#else
-#define DXCOMPILER_DLL "libdxcompiler.so"
-#endif
-
-#ifdef DXIL_DLL
-#undef DXIL_DLL
-#endif
-#if defined(_WIN32)
-#define DXIL_DLL "dxil.dll"
-#elif defined(__APPLE__)
-#define DXIL_DLL "libdxil.dylib"
-#else
-#define DXIL_DLL "libdxil.so"
 #endif
 
 /* Unlike vkd3d-utils, libdxcompiler.so does not use msabi */
@@ -276,14 +259,16 @@ struct IDxcCompiler3
 /* *INDENT-ON* */ // clang-format on
 
 /* DXCompiler */
+#if defined(SDL_PLATFORM_XBOXONE) || defined(SDL_PLATFORM_XBOXSERIES)
 static SDL_SharedObject *dxcompiler_dll = NULL;
-
+static DxcCreateInstanceProc SDL_DxcCreateInstance = NULL;
 typedef HRESULT(__stdcall *DxcCreateInstanceProc)(
     REFCLSID rclsid,
     REFIID riid,
     LPVOID *ppv);
-
-static DxcCreateInstanceProc SDL_DxcCreateInstance = NULL;
+#else
+HRESULT DxcCreateInstance(REFCLSID rclsid, REFIID riid, LPVOID *ppv);
+#endif
 
 static void *SDL_ShaderCross_INTERNAL_CompileUsingDXC(
     const char *hlslSource,
@@ -312,9 +297,22 @@ static void *SDL_ShaderCross_INTERNAL_CompileUsingDXC(
     /* Non-static DxcInstance, since the functions we call on it are not thread-safe */
     IDxcCompiler3 *dxcInstance = NULL;
 
-    SDL_DxcCreateInstance(&CLSID_DxcCompiler,
-                          IID_IDxcCompiler3,
-                          (void **)&dxcInstance);
+    #if defined(SDL_PLATFORM_XBOXONE) || defined(SDL_PLATFORM_XBOXSERIES)
+    if (SDL_DxcCreateInstance == NULL) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%s", "DxcCreateInstance function not loaded. Did you forget to call Init?");
+        return NULL;
+    }
+    SDL_DxcCreateInstance(
+        &CLSID_DxcCompiler,
+        IID_IDxcCompiler3,
+        (void **)&dxcInstance);
+    #else
+    DxcCreateInstance(
+        &CLSID_DxcCompiler,
+        IID_IDxcCompiler3,
+        (void **)&dxcInstance);
+    #endif
+
     if (dxcInstance == NULL) {
         return NULL;
     }
@@ -338,7 +336,7 @@ static void *SDL_ShaderCross_INTERNAL_CompileUsingDXC(
         args[argCount++] = (LPCWSTR)L"-spirv";
     }
 
-#ifdef _GAMING_XBOX
+#if defined(SDL_PLATFORM_XBOXONE) || defined(SDL_PLATFORM_XBOXSERIES)
     args[argCount++] = L"-D__XBOX_DISABLE_PRECOMPILE=1";
 #endif
 
@@ -1547,22 +1545,8 @@ SDL_GPUComputePipeline *SDL_ShaderCross_CompileComputePipelineFromSPIRV(
 
 bool SDL_ShaderCross_Init(void)
 {
+    #if defined(SDL_PLATFORM_XBOXONE) || defined(SDL_PLATFORM_XBOXSERIES)
     dxcompiler_dll = SDL_LoadObject(DXCOMPILER_DLL);
-    if (dxcompiler_dll != NULL) {
-#ifndef _GAMING_XBOX
-        /* Try to load DXIL, we don't need it directly but if it doesn't exist the code will not be loadable */
-        SDL_SharedObject *dxil_dll = SDL_LoadObject(DXIL_DLL);
-        if (dxil_dll == NULL) {
-            SDL_LogError(SDL_LOG_CATEGORY_GPU, "Failed to load DXIL library, this will cause pipeline creation failures!");
-
-            SDL_UnloadObject(dxcompiler_dll);
-            dxcompiler_dll = NULL;
-        } else {
-            SDL_UnloadObject(dxil_dll); /* Unload immediately, we don't actually need it */
-        }
-#endif
-    }
-
     if (dxcompiler_dll != NULL) {
         SDL_DxcCreateInstance = (DxcCreateInstanceProc)SDL_LoadFunction(dxcompiler_dll, "DxcCreateInstance");
 
@@ -1571,6 +1555,7 @@ bool SDL_ShaderCross_Init(void)
             dxcompiler_dll = NULL;
         }
     }
+    #endif
 
     d3dcompiler_dll = SDL_LoadObject(D3DCOMPILER_DLL);
 
@@ -1596,12 +1581,14 @@ void SDL_ShaderCross_Quit(void)
         SDL_D3DCompile = NULL;
     }
 
+    #if defined(SDL_PLATFORM_XBOXONE) || defined(SDL_PLATFORM_XBOXSERIES)
     if (dxcompiler_dll != NULL) {
         SDL_UnloadObject(dxcompiler_dll);
         dxcompiler_dll = NULL;
 
         SDL_DxcCreateInstance = NULL;
     }
+    #endif
 #endif /* SDL_GPU_SHADERCROSS_HLSL */
 }
 
@@ -1614,9 +1601,7 @@ SDL_GPUShaderFormat SDL_ShaderCross_GetSPIRVShaderFormats(void)
 
 #if SDL_GPU_SHADERCROSS_HLSL
     /* SPIRV-Cross + DXC allows us to cross-compile to HLSL, then compile to DXIL */
-    if (dxcompiler_dll != NULL) {
-        supportedFormats |= SDL_GPU_SHADERFORMAT_DXIL;
-    }
+    supportedFormats |= SDL_GPU_SHADERFORMAT_DXIL;
 
     /* SPIRV-Cross + FXC allows us to cross-compile to HLSL, then compile to DXBC */
     if (d3dcompiler_dll != NULL) {
@@ -1633,13 +1618,8 @@ SDL_GPUShaderFormat SDL_ShaderCross_GetSPIRVShaderFormats(void)
 
 SDL_GPUShaderFormat SDL_ShaderCross_GetHLSLShaderFormats(void)
 {
-    SDL_GPUShaderFormat supportedFormats = 0;
-
     /* DXC allows compilation from HLSL to DXIL and SPIRV */
-    if (dxcompiler_dll != NULL) {
-        supportedFormats |= SDL_GPU_SHADERFORMAT_DXIL;
-        supportedFormats |= SDL_GPU_SHADERFORMAT_SPIRV;
-    }
+    SDL_GPUShaderFormat supportedFormats = SDL_GPU_SHADERFORMAT_DXIL | SDL_GPU_SHADERFORMAT_SPIRV;
 
     /* FXC allows compilation of HLSL to DXBC */
     if (d3dcompiler_dll != NULL) {

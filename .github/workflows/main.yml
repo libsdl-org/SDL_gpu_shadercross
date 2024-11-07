@@ -16,12 +16,11 @@ jobs:
       fail-fast: false
       matrix:
         platform:
-          - { name: Windows (MSVC),                os: windows-2019, shell: sh, msvc: true, artifact: 'SDL3_gpu_shadercross-VC-x64' }
-          - { name: Windows (mingw64),             os: windows-latest, shell: 'msys2 {0}', msystem: mingw64, msys-env: mingw-w64-x86_64, artifact: 'SDL3_gpu_shadercross-mingw64' }
-          - { name: Ubuntu 20.04,                  os: ubuntu-20.04,   shell: sh, artifact: 'SDL3_gpu_shadercross-linux-x64' }
-          - { name: Steam Linux Runtime (Sniper),  os: ubuntu-latest,  shell: sh, artifact: 'SDL3_gpu_shadercross-slrsniper', container: 'registry.gitlab.steamos.cloud/steamrt/sniper/sdk:beta' }
-          - { name: macOS,                         os: macos-latest,   shell: sh, artifact: 'SDL3_gpu_shadercross-macos-x64' }
-
+          - { name: Windows (MSVC),                os: windows-2019,   build-spirv-cross: true,  vendored: false, shell: sh, msvc: true, artifact: 'SDL3_gpu_shadercross-VC-x64' }
+          - { name: Windows (mingw64),             os: windows-latest, build-spirv-cross: false, vendored: false, shell: 'msys2 {0}', msystem: mingw64, msys-env: mingw-w64-x86_64, artifact: 'SDL3_gpu_shadercross-mingw64' }
+          - { name: Ubuntu 22.04,                  os: ubuntu-22.04,   build-spirv-cross: true,  vendored: false, shell: sh, artifact: 'SDL3_gpu_shadercross-linux-x64' }
+          - { name: Steam Linux Runtime (Sniper),  os: ubuntu-latest,  build-spirv-cross: false,  vendored: true, shell: sh, artifact: 'SDL3_gpu_shadercross-slrsniper', container: 'registry.gitlab.steamos.cloud/steamrt/sniper/sdk:beta' }
+          - { name: macOS,                         os: macos-latest,   build-spirv-cross: true,  vendored: true,  shell: sh, artifact: 'SDL3_gpu_shadercross-macos-arm64' }
 
     steps:
       - uses: actions/checkout@v4
@@ -43,6 +42,7 @@ jobs:
             ${{ matrix.platform.msys-env }}-cmake
             ${{ matrix.platform.msys-env }}-gcc
             ${{ matrix.platform.msys-env }}-ninja
+            ${{ (!matrix.platform.vendored && format('{0}-spirv-cross', matrix.platform.msys-env)) || '' }}
       - name: Set up SDL
         id: sdl
         uses: libsdl-org/setup-sdl@main
@@ -58,7 +58,7 @@ jobs:
           # patchelf is needed to fix the runpath of libSDL3.so.0
           wget https://github.com/NixOS/patchelf/releases/download/0.18.0/patchelf-0.18.0-x86_64.tar.gz
           tar xf patchelf-0.18.0-x86_64.tar.gz ./bin/patchelf
-          echo "$PWD/bin" >>$GITHUB_PATH
+          echo "${PWD}/bin" >>$GITHUB_PATH
 
           # libxrandr-dev is needed by vulkan-loader
           sudo apt-get update -y
@@ -69,18 +69,39 @@ jobs:
           # bison is needed by vkd3d
           brew install bison
           echo "/opt/homebrew/opt/bison/bin" >>$GITHUB_PATH
+      - name: Download DirectXShaderCompiler binaries
+        if: ${{ !matrix.platform.vendored && runner.os != 'macOS' }}
+        run: |
+          cmake -P build-scripts/download-prebuilt-DirectXShaderCompiler.cmake
+          echo "DirectXShaderCompiler_ROOT=${PWD}/external/DirectXShaderCompiler-binaries" >>${GITHUB_ENV}
+      - name: Build SPIRV-Cross
+        if: ${{ matrix.platform.build-spirv-cross }}
+        run: |
+          cmake -S external/SPIRV-Cross -B spirv_cross_build -GNinja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DSPIRV_CROSS_SHARED=ON \
+            -DSPIRV_CROSS_STATIC=ON \
+            -DCMAKE_INSTALL_PREFIX=${PWD}/spirv_cross_prefix
+          cmake --build spirv_cross_build
+          cmake --install spirv_cross_build
 
+          spirv_cross_prefix=${PWD}/spirv_cross_prefix
+          if test "x${{ (matrix.platform.msvc && 'msvc') || '' }}" = "xmsvc"; then
+            spirv_cross_prefix=$(cygpath -w "${spirv_cross_prefix}")
+          fi
+          joiner="${{ (runner.os == 'Windows' && ';') || ':' }}"
+          echo "spirv_cross_c_shared_ROOT=${spirv_cross_prefix}${joiner}${spirv_cross_prefix}/share/spirv_cross_c_shared" >>${GITHUB_ENV}
       - name: Configure (CMake)
         run: |
           cmake -S . -B build -GNinja \
             -DCMAKE_BUILD_TYPE=Release \
             -DSDLGPUSHADERCROSS_SHARED=ON \
             -DSDLGPUSHADERCROSS_STATIC=ON \
-            -DSDLGPUSHADERCROSS_VENDORED=ON \
+            -DSDLGPUSHADERCROSS_VENDORED=${{ matrix.platform.vendored }} \
             -DSDLGPUSHADERCROSS_CLI=ON \
             -DSDLGPUSHADERCROSS_WERROR=ON \
             -DSDLGPUSHADERCROSS_INSTALL=ON \
-            -DSDLGPUSHADERCROSS_INSTALL_DEPS=ON \
+            -DSDLGPUSHADERCROSS_INSTALL_RUNTIME=ON \
             -DSDLGPUSHADERCROSS_INSTALL_CPACK=ON \
             -DCMAKE_INSTALL_PREFIX="${PWD}/prefix"
 
@@ -88,12 +109,12 @@ jobs:
         id: build
         run: |
           cmake --build build --config Release --parallel --verbose
-
       - name: Install (CMake)
         id: install
         if: ${{ always() && steps.build.outcome == 'success' }}
         run: |
           cmake --install build/ --config Release
+          echo "SDL3_gpu_shadercross_ROOT=${PWD}/prefix" >>${GITHUB_ENV}
       - name: Package (CPack)
         id: package
         if: ${{ always() && steps.build.outcome == 'success' }}
@@ -103,10 +124,8 @@ jobs:
       - name: Verify CMake configuration files
         if: ${{ always() && steps.install.outcome == 'success' }}
         run: |
-          cmake -S cmake/test -B cmake_config_build \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_PREFIX_PATH="${PWD}/prefix" \
-            -GNinja
+          cmake -S cmake/test -B cmake_config_build -GNinja \
+            -DCMAKE_BUILD_TYPE=Release
           cmake --build cmake_config_build --verbose
 
       - uses: actions/upload-artifact@v4
