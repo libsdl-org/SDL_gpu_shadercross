@@ -298,6 +298,10 @@ static void *SDL_ShaderCross_INTERNAL_CompileUsingDXC(
     IDxcCompiler3 *dxcInstance = NULL;
 
     #if defined(SDL_PLATFORM_XBOXONE) || defined(SDL_PLATFORM_XBOXSERIES)
+    if (SDL_DxcCreateInstance == NULL) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%s", "DxcCreateInstance function not loaded. Did you forget to call Init?");
+        return NULL;
+    }
     SDL_DxcCreateInstance(
         &CLSID_DxcCompiler,
         IID_IDxcCompiler3,
