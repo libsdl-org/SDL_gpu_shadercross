@@ -270,6 +270,9 @@ if(SDLGPUSHADERCROSS_INSTALL)
 			DESTINATION "${SDLGPUSHADERCROSS_INSTALL_CMAKEDIR}"
 			COMPONENT devel
 		)
+		if(MSVC)
+			SDL_install_pdb(SDL3_gpu_shadercross-shared "${CMAKE_INSTALL_BINDIR}")
+		endif()
 	endif()
 	if(TARGET SDL3_gpu_shadercross-static)
 		install(TARGETS SDL3_gpu_shadercross-static EXPORT SDL3_gpu_shadercross-static-export
@@ -282,6 +285,9 @@ if(SDLGPUSHADERCROSS_INSTALL)
 			DESTINATION "${SDLGPUSHADERCROSS_INSTALL_CMAKEDIR}"
 			COMPONENT devel
 		)
+		if(MSVC)
+			SDL_install_pdb(SDL3_gpu_shadercross-static "${CMAKE_INSTALL_LIBDIR}")
+		endif()
 	endif()
 	if(install_extra_targets)
 		install(TARGETS ${install_extra_targets} EXPORT SDL3_gpu_shadercross-vendored
@@ -295,6 +301,9 @@ if(SDLGPUSHADERCROSS_INSTALL)
 			DESTINATION "${SDLGPUSHADERCROSS_INSTALL_CMAKEDIR}"
 			COMPONENT devel
 		)
+		if(MSVC)
+			SDL_install_pdb(shadercross "${CMAKE_INSTALL_BINDIR}")
+		endif()
 	endif()
 	install(
 		FILES "${CMAKE_CURRENT_SOURCE_DIR}/include/SDL3_gpu_shadercross/SDL_gpu_shadercross.h"
@@ -302,6 +311,9 @@ if(SDLGPUSHADERCROSS_INSTALL)
 	)
 	if(SDLGPUSHADERCROSS_CLI)
 		install(TARGETS shadercross RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")
+		if(MSVC)
+			SDL_install_pdb(shadercross "${CMAKE_INSTALL_BINDIR}")
+		endif()
 	endif()
 
 	include(CMakePackageConfigHelpers)
@@ -393,6 +405,9 @@ if(SDLGPUSHADERCROSS_INSTALL_RUNTIME)
 	# Install SDL3
 	if(SDLGPUSHADERCROSS_CLI AND NOT SDLGPUSHADERCROSS_CLI_STATIC)
 		install(IMPORTED_RUNTIME_ARTIFACTS SDL3::SDL3-shared RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}" LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}")
+		if(MSVC)
+			SDL_install_pdb(SDL3::SDL3-shared "${CMAKE_INSTALL_BINDIR}")
+		endif()
 	endif()
 	include(ExternalProject)
 

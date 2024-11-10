@@ -47,6 +47,7 @@ jobs:
         id: sdl
         uses: libsdl-org/setup-sdl@main
         with:
+          build-type: RelWithDebInfo
           cmake-generator: Ninja
           version: 3-head
           sdl-test: true
@@ -78,7 +79,7 @@ jobs:
         if: ${{ matrix.platform.build-spirv-cross }}
         run: |
           cmake -S external/SPIRV-Cross -B spirv_cross_build -GNinja \
-            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_BUILD_TYPE=RelWithDebInfo \
             -DSPIRV_CROSS_SHARED=ON \
             -DSPIRV_CROSS_STATIC=ON \
             -DCMAKE_INSTALL_PREFIX=${PWD}/spirv_cross_prefix
@@ -94,7 +95,7 @@ jobs:
       - name: Configure (CMake)
         run: |
           cmake -S . -B build -GNinja \
-            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_BUILD_TYPE=RelWithDebInfo \
             -DSDLGPUSHADERCROSS_SHARED=ON \
             -DSDLGPUSHADERCROSS_STATIC=ON \
             -DSDLGPUSHADERCROSS_VENDORED=${{ matrix.platform.vendored }} \
@@ -108,12 +109,12 @@ jobs:
       - name: Build (CMake)
         id: build
         run: |
-          cmake --build build --config Release --parallel --verbose
+          cmake --build build --config RelWithDebInfo --parallel --verbose
       - name: Install (CMake)
         id: install
         if: ${{ always() && steps.build.outcome == 'success' }}
         run: |
-          cmake --install build/ --config Release
+          cmake --install build/ --config RelWithDebInfo
           echo "SDL3_gpu_shadercross_ROOT=${PWD}/prefix" >>${GITHUB_ENV}
       - name: Package (CPack)
         id: package
@@ -125,7 +126,7 @@ jobs:
         if: ${{ always() && steps.install.outcome == 'success' }}
         run: |
           cmake -S cmake/test -B cmake_config_build -GNinja \
-            -DCMAKE_BUILD_TYPE=Release
+            -DCMAKE_BUILD_TYPE=RelWithDebInfo
           cmake --build cmake_config_build --verbose
 
       - uses: actions/upload-artifact@v4
