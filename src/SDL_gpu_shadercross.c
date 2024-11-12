@@ -775,7 +775,7 @@ void *SDL_ShaderCross_CompileDXBCFromHLSL(
     SDL_ShaderCross_ShaderStage shaderStage,
     size_t *size) // filled in with number of bytes of returned buffer
 {
-    // Need to roundtrip to SM 5.0
+    // Need to roundtrip to SM 5.1
     size_t spirv_size;
     void *spirv = SDL_ShaderCross_CompileSPIRVFromHLSL(
         hlslSource,
@@ -901,15 +901,6 @@ static void *SDL_ShaderCross_INTERNAL_CreateShaderFromHLSL(
     const void *resourceInfo)
 {
     SDL_GPUShaderFormat format = SDL_GetGPUShaderFormats(device);
-    if (format & SDL_GPU_SHADERFORMAT_DXBC) {
-        return SDL_ShaderCross_INTERNAL_CreateShaderFromDXBC(
-            device,
-            hlslSource,
-            entrypoint,
-            includeDir,
-            shaderStage,
-            resourceInfo);
-    }
     if (format & SDL_GPU_SHADERFORMAT_DXIL) {
         return SDL_ShaderCross_INTERNAL_CreateShaderFromDXC(
             device,
@@ -919,6 +910,15 @@ static void *SDL_ShaderCross_INTERNAL_CreateShaderFromHLSL(
             shaderStage,
             resourceInfo,
             false);
+    }
+    if (SDL_D3DCompile != NULL && (format & SDL_GPU_SHADERFORMAT_DXBC)) {
+        return SDL_ShaderCross_INTERNAL_CreateShaderFromDXBC(
+            device,
+            hlslSource,
+            entrypoint,
+            includeDir,
+            shaderStage,
+            resourceInfo);
     }
     if (format & SDL_GPU_SHADERFORMAT_SPIRV) {
         return SDL_ShaderCross_INTERNAL_CreateShaderFromDXC(

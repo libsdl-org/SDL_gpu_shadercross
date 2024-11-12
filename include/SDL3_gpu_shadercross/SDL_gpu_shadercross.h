@@ -223,7 +223,7 @@ extern SDL_DECLSPEC SDL_GPUComputePipeline * SDLCALL SDL_ShaderCross_CompileComp
 extern SDL_DECLSPEC SDL_GPUShaderFormat SDLCALL SDL_ShaderCross_GetHLSLShaderFormats(void);
 
 /**
- * Compile to DXBC bytecode from HLSL Shader Model 6.0 code via a SPIRV-Cross round trip.
+ * Compile to DXBC bytecode from HLSL code via a SPIRV-Cross round trip.
  *
  * You must SDL_free the returned buffer once you are done with it.
  *
@@ -244,7 +244,7 @@ extern SDL_DECLSPEC void * SDLCALL SDL_ShaderCross_CompileDXBCFromHLSL(
     size_t *size);
 
 /**
- * Compile to DXIL bytecode from HLSL Shader Model 6.0 code via a SPIRV-Cross round trip.
+ * Compile to DXIL bytecode from HLSL code via a SPIRV-Cross round trip.
  *
  * You must SDL_free the returned buffer once you are done with it.
  *
@@ -265,7 +265,7 @@ extern SDL_DECLSPEC void * SDLCALL SDL_ShaderCross_CompileDXILFromHLSL(
     size_t *size);
 
 /**
- * Compile to SPIRV bytecode from HLSL Shader Model 6.0 code.
+ * Compile to SPIRV bytecode from HLSL code.
  *
  * You must SDL_free the returned buffer once you are done with it.
  *
@@ -286,7 +286,7 @@ extern SDL_DECLSPEC void * SDLCALL SDL_ShaderCross_CompileSPIRVFromHLSL(
     size_t *size);
 
 /**
- * Compile an SDL GPU shader from HLSL Shader Model 6.0 code.
+ * Compile an SDL GPU shader from HLSL code.
  *
  * \param device the SDL GPU device.
  * \param hlslSource the HLSL source code for the shader.
@@ -307,7 +307,7 @@ extern SDL_DECLSPEC SDL_GPUShader * SDLCALL SDL_ShaderCross_CompileGraphicsShade
     const SDL_ShaderCross_ShaderResourceInfo *resourceInfo);
 
 /**
- * Compile an SDL GPU compute pipeline from HLSL Shader Model 6.0 code.
+ * Compile an SDL GPU compute pipeline from code.
  *
  * \param device the SDL GPU device.
  * \param hlslSource the HLSL source code for the shader.
