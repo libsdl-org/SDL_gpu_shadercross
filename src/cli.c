@@ -405,7 +405,7 @@ int main(int argc, char *argv[])
                     &bytecodeSize);
                 SDL_WriteIO(outputIO, buffer, bytecodeSize);
                 SDL_free(buffer);
-                return 0;
+                break;
             }
 
             case SHADERFORMAT_HLSL: {

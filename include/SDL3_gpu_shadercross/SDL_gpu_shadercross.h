@@ -38,14 +38,6 @@ extern "C" {
 #define SDL_GPU_SHADERCROSS_MINOR_VERSION 0
 #define SDL_GPU_SHADERCROSS_MICRO_VERSION 0
 
-#ifndef SDL_GPU_SHADERCROSS_SPIRVCROSS
-#define SDL_GPU_SHADERCROSS_SPIRVCROSS 1
-#endif /* SDL_GPU_SHADERCROSS_SPIRVCROSS */
-
-#ifndef SDL_GPU_SHADERCROSS_HLSL
-#define SDL_GPU_SHADERCROSS_HLSL 1
-#endif /* SDL_GPU_SHADERCROSS_HLSL */
-
 typedef enum SDL_ShaderCross_ShaderStage
 {
    SDL_SHADERCROSS_SHADERSTAGE_VERTEX,
@@ -92,7 +84,6 @@ extern SDL_DECLSPEC bool SDLCALL SDL_ShaderCross_Init(void);
  */
 extern SDL_DECLSPEC void SDLCALL SDL_ShaderCross_Quit(void);
 
-#if SDL_GPU_SHADERCROSS_SPIRVCROSS
 /**
  * Get the supported shader formats that SPIRV cross-compilation can output
  *
@@ -212,9 +203,6 @@ extern SDL_DECLSPEC SDL_GPUComputePipeline * SDLCALL SDL_ShaderCross_CompileComp
     const char *entrypoint,
     const SDL_ShaderCross_ComputeResourceInfo *resourceInfo);
 
-#endif /* SDL_GPU_SHADERCROSS_SPIRVCROSS */
-
-#if SDL_GPU_SHADERCROSS_HLSL
 /**
  * Get the supported shader formats that HLSL cross-compilation can output
  *
@@ -324,8 +312,6 @@ extern SDL_DECLSPEC SDL_GPUComputePipeline * SDLCALL SDL_ShaderCross_CompileComp
     const char *entrypoint,
     const char *includeDir,
     const SDL_ShaderCross_ComputeResourceInfo *resourceInfo);
-
-#endif /* SDL_GPU_SHADERCROSS_HLSL */
 
 #ifdef __cplusplus
 }

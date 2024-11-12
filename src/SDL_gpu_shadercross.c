@@ -23,7 +23,9 @@
 #include <SDL3/SDL_loadso.h>
 #include <SDL3/SDL_log.h>
 
-#if SDL_GPU_SHADERCROSS_HLSL
+#ifndef SDL_GPU_SHADERCROSS_DXC
+#define SDL_GPU_SHADERCROSS_DXC 1
+#endif /* SDL_GPU_SHADERCROSS_DXC */
 
 /* Win32 Type Definitions */
 
@@ -37,6 +39,7 @@ typedef void *LPVOID;
 typedef void *REFIID;
 
 /* DXIL via DXC */
+#ifdef SDL_GPU_SHADERCROSS_DXC
 
 /* dxcompiler Type Definitions */
 typedef int BOOL;
@@ -327,6 +330,8 @@ typedef HRESULT(__stdcall *DxcCreateInstanceProc)(
 HRESULT DxcCreateInstance(REFCLSID rclsid, REFIID riid, LPVOID *ppv);
 #endif
 
+#endif /* SDL_GPU_SHADERCROSS_DXC */
+
 static void *SDL_ShaderCross_INTERNAL_CompileUsingDXC(
     const char *hlslSource,
     const char *entrypoint,
@@ -335,6 +340,7 @@ static void *SDL_ShaderCross_INTERNAL_CompileUsingDXC(
     bool spirv,
     size_t *size) // filled in with number of bytes of returned buffer
 {
+#ifdef SDL_GPU_SHADERCROSS_DXC
     DxcBuffer source;
     IDxcResult *dxcResult;
     IDxcBlob *blob;
@@ -521,6 +527,10 @@ static void *SDL_ShaderCross_INTERNAL_CompileUsingDXC(
     utils->lpVtbl->Release(utils);
 
     return buffer;
+#else
+    SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%s", "Shadercross was not built with DXC support, cannot compile using DXC!");
+    return NULL;
+#endif /* SDL_GPU_SHADERCROSS_DXC */
 }
 
 void *SDL_ShaderCross_CompileDXILFromHLSL(
@@ -901,6 +911,7 @@ static void *SDL_ShaderCross_INTERNAL_CreateShaderFromHLSL(
     const void *resourceInfo)
 {
     SDL_GPUShaderFormat format = SDL_GetGPUShaderFormats(device);
+
     if (format & SDL_GPU_SHADERFORMAT_DXIL) {
         return SDL_ShaderCross_INTERNAL_CreateShaderFromDXC(
             device,
@@ -911,7 +922,8 @@ static void *SDL_ShaderCross_INTERNAL_CreateShaderFromHLSL(
             resourceInfo,
             false);
     }
-    if (SDL_D3DCompile != NULL && (format & SDL_GPU_SHADERFORMAT_DXBC)) {
+
+    if (format & SDL_GPU_SHADERFORMAT_DXBC) {
         return SDL_ShaderCross_INTERNAL_CreateShaderFromDXBC(
             device,
             hlslSource,
@@ -920,6 +932,7 @@ static void *SDL_ShaderCross_INTERNAL_CreateShaderFromHLSL(
             shaderStage,
             resourceInfo);
     }
+
     if (format & SDL_GPU_SHADERFORMAT_SPIRV) {
         return SDL_ShaderCross_INTERNAL_CreateShaderFromDXC(
             device,
@@ -930,6 +943,7 @@ static void *SDL_ShaderCross_INTERNAL_CreateShaderFromHLSL(
             resourceInfo,
             true);
     }
+
     if (format & SDL_GPU_SHADERFORMAT_MSL) {
         size_t bytecodeSize;
         void *spirv = SDL_ShaderCross_CompileSPIRVFromHLSL(
@@ -999,14 +1013,6 @@ SDL_GPUComputePipeline *SDL_ShaderCross_CompileComputePipelineFromHLSL(
         SDL_SHADERCROSS_SHADERSTAGE_COMPUTE,
         (const void *)resourceInfo);
 }
-
-#endif /* SDL_GPU_SHADERCROSS_HLSL */
-
-#if SDL_GPU_SHADERCROSS_SPIRVCROSS
-
-#if !SDL_GPU_SHADERCROSS_HLSL
-#error SDL_GPU_SHADERCROSS_HLSL must be enabled for SDL_GPU_SHADERCROSS_SPIRVCROSS!
-#endif /* !SDL_GPU_SHADERCROSS_HLSL */
 
 #include <spirv_cross_c.h>
 
@@ -1738,6 +1744,11 @@ void *SDL_ShaderCross_CompileDXILFromSPIRV(
     SDL_ShaderCross_ShaderStage shaderStage,
     size_t *size)
 {
+#ifndef SDL_GPU_SHADERCROSS_DXC
+    SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%s", "Shadercross was not compiled with DXC support, cannot compile to SPIR-V!");
+    return NULL;
+#endif
+
     SPIRVTranspileContext *context = SDL_ShaderCross_INTERNAL_TranspileFromSPIRV(
         SPVC_BACKEND_HLSL,
         60,
@@ -1803,15 +1814,21 @@ static void *SDL_ShaderCross_INTERNAL_CreateShaderFromSPIRV(
             createInfo.props = 0;
             return SDL_CreateGPUShader(device, &createInfo);
         }
-    } else if (shader_formats & SDL_GPU_SHADERFORMAT_DXBC) {
-        format = SDL_GPU_SHADERFORMAT_DXBC;
-    } else if (shader_formats & SDL_GPU_SHADERFORMAT_DXIL) {
-        format = SDL_GPU_SHADERFORMAT_DXIL;
     } else if (shader_formats & SDL_GPU_SHADERFORMAT_MSL) {
         format = SDL_GPU_SHADERFORMAT_MSL;
     } else {
-        SDL_SetError("SDL_ShaderCross_INTERNAL_CreateShaderFromSPIRV: Unexpected SDL_GPUBackend");
-        return NULL;
+        if ((shader_formats & SDL_GPU_SHADERFORMAT_DXBC) && SDL_D3DCompile != NULL) {
+            format = SDL_GPU_SHADERFORMAT_DXBC;
+        }
+#ifdef SDL_GPU_SHADERCROSS_DXC
+        else if (shader_formats & SDL_GPU_SHADERFORMAT_DXIL) {
+            format = SDL_GPU_SHADERFORMAT_DXIL;
+        }
+#endif
+        else {
+            SDL_SetError("SDL_ShaderCross_INTERNAL_CreateShaderFromSPIRV: Unexpected SDL_GPUBackend");
+            return NULL;
+        }
     }
 
     return SDL_ShaderCross_INTERNAL_CompileFromSPIRV(
@@ -1857,8 +1874,6 @@ SDL_GPUComputePipeline *SDL_ShaderCross_CompileComputePipelineFromSPIRV(
         (const void *)resourceInfo);
 }
 
-#endif /* SDL_GPU_SHADERCROSS_SPIRVCROSS */
-
 bool SDL_ShaderCross_Init(void)
 {
     #if defined(SDL_PLATFORM_XBOXONE) || defined(SDL_PLATFORM_XBOXSERIES)
@@ -1889,7 +1904,6 @@ bool SDL_ShaderCross_Init(void)
 
 void SDL_ShaderCross_Quit(void)
 {
-#if SDL_GPU_SHADERCROSS_HLSL
     if (d3dcompiler_dll != NULL) {
         SDL_UnloadObject(d3dcompiler_dll);
         d3dcompiler_dll = NULL;
@@ -1905,17 +1919,13 @@ void SDL_ShaderCross_Quit(void)
         SDL_DxcCreateInstance = NULL;
     }
     #endif
-#endif /* SDL_GPU_SHADERCROSS_HLSL */
 }
-
-#ifdef SDL_GPU_SHADERCROSS_SPIRVCROSS
 
 SDL_GPUShaderFormat SDL_ShaderCross_GetSPIRVShaderFormats(void)
 {
     /* SPIRV and MSL can always be output as-is with no preprocessing since we require SPIRV-Cross */
     SDL_GPUShaderFormat supportedFormats = SDL_GPU_SHADERFORMAT_SPIRV | SDL_GPU_SHADERFORMAT_MSL;
 
-#if SDL_GPU_SHADERCROSS_HLSL
     /* SPIRV-Cross + DXC allows us to cross-compile to HLSL, then compile to DXIL */
     supportedFormats |= SDL_GPU_SHADERFORMAT_DXIL;
 
@@ -1923,19 +1933,18 @@ SDL_GPUShaderFormat SDL_ShaderCross_GetSPIRVShaderFormats(void)
     if (d3dcompiler_dll != NULL) {
         supportedFormats |= SDL_GPU_SHADERFORMAT_DXBC;
     }
-#endif /* SDL_GPU_SHADERCROSS_HLSL */
 
     return supportedFormats;
 }
 
-#endif /* SDL_GPU_SHADERCROSS_SPIRVCROSS */
-
-#if SDL_GPU_SHADERCROSS_HLSL
-
 SDL_GPUShaderFormat SDL_ShaderCross_GetHLSLShaderFormats(void)
 {
+    SDL_GPUShaderFormat supportedFormats = 0;
+
     /* DXC allows compilation from HLSL to DXIL and SPIRV */
-    SDL_GPUShaderFormat supportedFormats = SDL_GPU_SHADERFORMAT_DXIL | SDL_GPU_SHADERFORMAT_SPIRV;
+#ifdef SDL_GPU_SHADERCROSS_DXC
+    supportedFormats |= SDL_GPU_SHADERFORMAT_DXIL | SDL_GPU_SHADERFORMAT_DXBC;
+#endif
 
     /* FXC allows compilation of HLSL to DXBC */
     if (d3dcompiler_dll != NULL) {
@@ -1944,5 +1953,3 @@ SDL_GPUShaderFormat SDL_ShaderCross_GetHLSLShaderFormats(void)
 
     return supportedFormats;
 }
-
-#endif /* SDL_GPU_SHADERCROSS_HLSL */
