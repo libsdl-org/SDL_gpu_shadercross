@@ -776,36 +776,40 @@ static ID3DBlob *SDL_ShaderCross_INTERNAL_CompileDXBC(
     return blob;
 }
 
-// Returns raw byte buffer
-void *SDL_ShaderCross_CompileDXBCFromHLSL(
+void *SDL_ShaderCross_INTERNAL_CompileDXBCFromHLSL(
     const char *hlslSource,
     const char *entrypoint,
     const char *includeDir,
     SDL_ShaderCross_ShaderStage shaderStage,
+    bool enableRoundtrip,
     size_t *size) // filled in with number of bytes of returned buffer
 {
-    // Need to roundtrip to SM 5.1
-    size_t spirv_size;
-    void *spirv = SDL_ShaderCross_CompileSPIRVFromHLSL(
-        hlslSource,
-        entrypoint,
-        includeDir,
-        shaderStage,
-        &spirv_size);
+    char *transpiledSource = NULL;
 
-    if (spirv == NULL) {
-        return NULL;
-    }
+    if (enableRoundtrip) {
+        // Need to roundtrip to SM 5.1
+        size_t spirv_size;
+        void *spirv = SDL_ShaderCross_CompileSPIRVFromHLSL(
+            hlslSource,
+            entrypoint,
+            includeDir,
+            shaderStage,
+            &spirv_size);
 
-    void *transpiledSource = SDL_ShaderCross_TranspileHLSLFromSPIRV(
-        spirv,
-        spirv_size,
-        entrypoint,
-        shaderStage);
-    SDL_free(spirv);
+        if (spirv == NULL) {
+            return NULL;
+        }
 
-    if (transpiledSource == NULL) {
-        return NULL;
+        transpiledSource = SDL_ShaderCross_TranspileHLSLFromSPIRV(
+            spirv,
+            spirv_size,
+            entrypoint,
+            shaderStage);
+        SDL_free(spirv);
+
+        if (transpiledSource == NULL) {
+            return NULL;
+        }
     }
 
     const char *shaderProfile;
@@ -818,7 +822,7 @@ void *SDL_ShaderCross_CompileDXBCFromHLSL(
     }
 
     ID3DBlob *blob = SDL_ShaderCross_INTERNAL_CompileDXBC(
-        transpiledSource,
+        transpiledSource != NULL ? transpiledSource : hlslSource,
         entrypoint,
         shaderProfile);
 
@@ -832,9 +836,28 @@ void *SDL_ShaderCross_CompileDXBCFromHLSL(
     SDL_memcpy(buffer, blob->lpVtbl->GetBufferPointer(blob), *size);
     blob->lpVtbl->Release(blob);
 
-    SDL_free(transpiledSource);
+    if (transpiledSource != NULL) {
+        SDL_free(transpiledSource);
+    }
 
     return buffer;
+}
+
+// Returns raw byte buffer
+void *SDL_ShaderCross_CompileDXBCFromHLSL(
+    const char *hlslSource,
+    const char *entrypoint,
+    const char *includeDir,
+    SDL_ShaderCross_ShaderStage shaderStage,
+    size_t *size) // filled in with number of bytes of returned buffer
+{
+    return SDL_ShaderCross_INTERNAL_CompileDXBCFromHLSL(
+        hlslSource,
+        entrypoint,
+        includeDir,
+        shaderStage,
+        true,
+        size);
 }
 
 static void *SDL_ShaderCross_INTERNAL_CreateShaderFromDXBC(
@@ -848,11 +871,12 @@ static void *SDL_ShaderCross_INTERNAL_CreateShaderFromDXBC(
     void *result;
     size_t bytecodeSize;
 
-    void *bytecode = SDL_ShaderCross_CompileDXBCFromHLSL(
+    void *bytecode = SDL_ShaderCross_INTERNAL_CompileDXBCFromHLSL(
         hlslSource,
         entrypoint,
         includeDir,
         shaderStage,
+        true,
         &bytecodeSize);
 
     if (bytecode == NULL) {
@@ -1593,11 +1617,12 @@ static void *SDL_ShaderCross_INTERNAL_CompileFromSPIRV(
         createInfo.props = 0;
 
         if (targetFormat == SDL_GPU_SHADERFORMAT_DXBC) {
-            createInfo.code = SDL_ShaderCross_CompileDXBCFromHLSL(
+            createInfo.code = SDL_ShaderCross_INTERNAL_CompileDXBCFromHLSL(
                 transpileContext->translated_source,
                 transpileContext->cleansed_entrypoint,
                 NULL,
                 shaderStage,
+                false,
                 &createInfo.code_size);
         } else if (targetFormat == SDL_GPU_SHADERFORMAT_DXIL) {
             createInfo.code = SDL_ShaderCross_CompileDXILFromHLSL(
@@ -1625,11 +1650,12 @@ static void *SDL_ShaderCross_INTERNAL_CompileFromSPIRV(
         createInfo.props = 0;
 
         if (targetFormat == SDL_GPU_SHADERFORMAT_DXBC) {
-            createInfo.code = SDL_ShaderCross_CompileDXBCFromHLSL(
+            createInfo.code = SDL_ShaderCross_INTERNAL_CompileDXBCFromHLSL(
                 transpileContext->translated_source,
                 transpileContext->cleansed_entrypoint,
                 NULL,
                 shaderStage,
+                false,
                 &createInfo.code_size);
         } else if (targetFormat == SDL_GPU_SHADERFORMAT_DXIL) {
             createInfo.code = SDL_ShaderCross_CompileDXILFromHLSL(
@@ -1711,11 +1737,12 @@ void *SDL_ShaderCross_CompileDXBCFromSPIRV(
         bytecodeSize,
         entrypoint);
 
-    void *result = SDL_ShaderCross_CompileDXBCFromHLSL(
+    void *result = SDL_ShaderCross_INTERNAL_CompileDXBCFromHLSL(
         context->translated_source,
         context->cleansed_entrypoint,
         NULL,
         shaderStage,
+        false,
         size);
 
     SDL_ShaderCross_INTERNAL_DestroyTranspileContext(context);
