@@ -900,8 +900,8 @@ static void *SDL_ShaderCross_INTERNAL_CreateShaderFromHLSL(
         return SDL_ShaderCross_INTERNAL_CreateShaderFromDXBC(
             device,
             hlslSource,
-            includeDir,
             entrypoint,
+            includeDir,
             shaderStage,
             resourceInfo);
     }
