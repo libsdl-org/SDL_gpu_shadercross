@@ -557,8 +557,7 @@ void *SDL_ShaderCross_CompileDXILFromHLSL(
         spirv,
         spirvSize,
         entrypoint,
-        shaderStage,
-        SDL_SHADERCROSS_SHADERMODEL_6_0);
+        shaderStage);
 
     SDL_free(spirv);
     if (translatedSource == NULL) {
@@ -802,9 +801,7 @@ void *SDL_ShaderCross_CompileDXBCFromHLSL(
         spirv,
         spirv_size,
         entrypoint,
-        shaderStage,
-        SDL_SHADERCROSS_SHADERMODEL_5_1
-    );
+        shaderStage);
     SDL_free(spirv);
 
     if (transpiledSource == NULL) {
@@ -1680,23 +1677,11 @@ void *SDL_ShaderCross_TranspileHLSLFromSPIRV(
     const Uint8 *bytecode,
     size_t bytecodeSize,
     const char *entrypoint,
-    SDL_ShaderCross_ShaderStage shaderStage,
-    SDL_ShaderCross_ShaderModel shaderModel)
+    SDL_ShaderCross_ShaderStage shaderStage)
 {
-    unsigned int spirv_cross_shader_model = 0;
-
-    if (shaderModel == SDL_SHADERCROSS_SHADERMODEL_5_1) {
-        spirv_cross_shader_model = 51;
-    } else if (shaderModel == SDL_SHADERCROSS_SHADERMODEL_6_0) {
-        spirv_cross_shader_model = 60;
-    } else {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%s", "Invalid shader profile!");
-        return NULL;
-    }
-
     SPIRVTranspileContext *context = SDL_ShaderCross_INTERNAL_TranspileFromSPIRV(
         SPVC_BACKEND_HLSL,
-        spirv_cross_shader_model,
+        60,
         shaderStage,
         bytecode,
         bytecodeSize,

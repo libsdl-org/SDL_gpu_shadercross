@@ -45,13 +45,6 @@ typedef enum SDL_ShaderCross_ShaderStage
    SDL_SHADERCROSS_SHADERSTAGE_COMPUTE
 } SDL_ShaderCross_ShaderStage;
 
-typedef enum SDL_ShaderCross_ShaderModel
-{
-    SDL_SHADERCROSS_SHADERMODEL_INVALID,
-    SDL_SHADERCROSS_SHADERMODEL_5_1,
-    SDL_SHADERCROSS_SHADERMODEL_6_0
-} SDL_ShaderCross_ShaderModel;
-
 typedef struct SDL_ShaderCross_ShaderResourceInfo {
     Uint32 num_samplers;         /**< The number of samplers defined in the shader. */
     Uint32 num_storage_textures; /**< The number of storage textures defined in the shader. */
@@ -124,8 +117,7 @@ extern SDL_DECLSPEC void * SDLCALL SDL_ShaderCross_TranspileHLSLFromSPIRV(
     const Uint8 *bytecode,
     size_t bytecodeSize,
     const char *entrypoint,
-    SDL_ShaderCross_ShaderStage shaderStage,
-    SDL_ShaderCross_ShaderModel shaderModel);
+    SDL_ShaderCross_ShaderStage shaderStage);
 
 /**
  * Compile DXBC bytecode from SPIRV code.

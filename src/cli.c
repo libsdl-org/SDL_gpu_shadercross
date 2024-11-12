@@ -42,7 +42,6 @@ void print_help(void)
     SDL_Log("  %-*s %s", column_width, "-d | --dest <value>", "Destination format. May be inferred from the filename. Values: [DXBC, DXIL, MSL, SPIRV, HLSL]");
     SDL_Log("  %-*s %s", column_width, "-t | --stage <value>", "Shader stage. May be inferred from the filename. Values: [vertex, fragment, compute]");
     SDL_Log("  %-*s %s", column_width, "-e | --entrypoint <value>", "Entrypoint function name. Default: \"main\".");
-    SDL_Log("  %-*s %s", column_width, "-m | --shadermodel <value>", "HLSL Shader Model. Only used with HLSL destination. Values: [5.1, 6.0]");
     SDL_Log("  %-*s %s", column_width, "-I | --include <value>", "HLSL include directory. Only used with HLSL source. Optional.");
     SDL_Log("  %-*s %s", column_width, "-o | --output <value>", "Output file.");
 }
@@ -53,12 +52,10 @@ int main(int argc, char *argv[])
     bool sourceValid = false;
     bool destinationValid = false;
     bool stageValid = false;
-    bool shaderModelValid = false; // only required for HLSL destination
 
     bool spirvSource = false;
     ShaderCross_ShaderFormat destinationFormat = SHADERFORMAT_INVALID;
     SDL_ShaderCross_ShaderStage shaderStage = SDL_SHADERCROSS_SHADERSTAGE_VERTEX;
-    SDL_ShaderCross_ShaderModel shaderModel = SDL_SHADERCROSS_SHADERMODEL_INVALID;
     char *outputFilename = NULL;
     char *entrypointName = "main";
     char *includeDir = NULL;
@@ -149,24 +146,6 @@ int main(int argc, char *argv[])
                 }
                 i += 1;
                 entrypointName = argv[i];
-            } else if (SDL_strcmp(arg, "-m") == 0 || SDL_strcmp(arg, "--model") == 0) {
-                if (i + 1 >= argc) {
-                    SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%s requires an argument", arg);
-                    print_help();
-                    return 1;
-                }
-                i += 1;
-                if (SDL_strcmp(argv[i], "5.1") == 0) {
-                    shaderModel = SDL_SHADERCROSS_SHADERMODEL_5_1;
-                    shaderModelValid = true;
-                } else if (SDL_strcmp(argv[i], "6.0") == 0) {
-                    shaderModel = SDL_SHADERCROSS_SHADERMODEL_6_0;
-                    shaderModelValid = true;
-                } else {
-                    SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%s is not a recognized HLSL Shader Model!", argv[i]);
-                    print_help();
-                    return 1;
-                }
             } else if (SDL_strcmp(arg, "-I") == 0 || SDL_strcmp(arg, "--include") == 0) {
                 if (includeDir) {
                     SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "'%s' can only be used once", arg);
@@ -316,18 +295,11 @@ int main(int argc, char *argv[])
             }
 
             case SHADERFORMAT_HLSL: {
-                if (!shaderModelValid) {
-                    SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%s", "HLSL destination requires a shader model specification!");
-                    print_help();
-                    return 1;
-                }
-
                 char *buffer = SDL_ShaderCross_TranspileHLSLFromSPIRV(
                     fileData,
                     fileSize,
                     entrypointName,
-                    shaderStage,
-                    shaderModel);
+                    shaderStage);
 
                 if (buffer == NULL) {
                     SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%s", "Failed to transpile HLSL from SPIRV!");
@@ -409,12 +381,6 @@ int main(int argc, char *argv[])
             }
 
             case SHADERFORMAT_HLSL: {
-                if (!shaderModelValid) {
-                    SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%s", "HLSL destination requires a shader model specification!");
-                    print_help();
-                    return 1;
-                }
-
                 void *spirv = SDL_ShaderCross_CompileSPIRVFromHLSL(
                     fileData,
                     entrypointName,
@@ -431,8 +397,7 @@ int main(int argc, char *argv[])
                     spirv,
                     bytecodeSize,
                     entrypointName,
-                    shaderStage,
-                    shaderModel);
+                    shaderStage);
 
                 if (buffer == NULL) {
                     SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%s", "Failed to transpile HLSL from SPIRV!");
