@@ -441,7 +441,7 @@ static void *SDL_ShaderCross_INTERNAL_CompileUsingDXC(
         (void **)&dxcResult);
 
     SDL_free(entryPointUtf16);
-    if (includeDir != NULL) {
+    if (includeDirUtf16 != NULL) {
         SDL_free(includeDirUtf16);
     }
 
