@@ -229,6 +229,7 @@ extern SDL_DECLSPEC SDL_GPUShaderFormat SDLCALL SDL_ShaderCross_GetHLSLShaderFor
  *
  * \param hlslSource the HLSL source code for the shader.
  * \param entrypoint the entry point function name for the shader in UTF-8.
+ * \param includeDir the include directory for shader code. Optional, can be NULL.
  * \param shaderStage the shader stage to compile the shader with.
  * \param size filled in with the bytecode buffer size.
  * \returns an SDL_malloc'd buffer containing DXBC bytecode.
@@ -238,6 +239,7 @@ extern SDL_DECLSPEC SDL_GPUShaderFormat SDLCALL SDL_ShaderCross_GetHLSLShaderFor
 extern SDL_DECLSPEC void * SDLCALL SDL_ShaderCross_CompileDXBCFromHLSL(
     const char *hlslSource,
     const char *entrypoint,
+    const char *includeDir,
     SDL_ShaderCross_ShaderStage shaderStage,
     size_t *size);
 
@@ -248,6 +250,7 @@ extern SDL_DECLSPEC void * SDLCALL SDL_ShaderCross_CompileDXBCFromHLSL(
  *
  * \param hlslSource the HLSL source code for the shader.
  * \param entrypoint the entry point function name for the shader in UTF-8.
+ * \param includeDir the include directory for shader code. Optional, can be NULL.
  * \param shaderStage the shader stage to compile the shader with.
  * \param size filled in with the bytecode buffer size.
  * \returns an SDL_malloc'd buffer containing DXIL bytecode.
@@ -257,6 +260,7 @@ extern SDL_DECLSPEC void * SDLCALL SDL_ShaderCross_CompileDXBCFromHLSL(
 extern SDL_DECLSPEC void * SDLCALL SDL_ShaderCross_CompileDXILFromHLSL(
     const char *hlslSource,
     const char *entrypoint,
+    const char *includeDir,
     SDL_ShaderCross_ShaderStage shaderStage,
     size_t *size);
 
@@ -267,6 +271,7 @@ extern SDL_DECLSPEC void * SDLCALL SDL_ShaderCross_CompileDXILFromHLSL(
  *
  * \param hlslSource the HLSL source code for the shader.
  * \param entrypoint the entry point function name for the shader in UTF-8.
+ * \param includeDir the include directory for shader code. Optional, can be NULL.
  * \param shaderStage the shader stage to compile the shader with.
  * \param size filled in with the bytecode buffer size.
  * \returns an SDL_malloc'd buffer containing SPIRV bytecode.
@@ -276,6 +281,7 @@ extern SDL_DECLSPEC void * SDLCALL SDL_ShaderCross_CompileDXILFromHLSL(
 extern SDL_DECLSPEC void * SDLCALL SDL_ShaderCross_CompileSPIRVFromHLSL(
     const char *hlslSource,
     const char *entrypoint,
+    const char *includeDir,
     SDL_ShaderCross_ShaderStage shaderStage,
     size_t *size);
 
@@ -285,6 +291,7 @@ extern SDL_DECLSPEC void * SDLCALL SDL_ShaderCross_CompileSPIRVFromHLSL(
  * \param device the SDL GPU device.
  * \param hlslSource the HLSL source code for the shader.
  * \param entrypoint the entry point function name for the shader in UTF-8.
+ * \param includeDir the include directory for shader code. Optional, can be NULL.
  * \param graphicsShaderStage the shader stage to compile the shader with.
  * \param resourceInfo a pointer to an SDL_ShaderCross_ShaderResourceInfo.
  * \returns a compiled SDL_GPUShader
@@ -295,6 +302,7 @@ extern SDL_DECLSPEC SDL_GPUShader * SDLCALL SDL_ShaderCross_CompileGraphicsShade
     SDL_GPUDevice *device,
     const char *hlslSource,
     const char *entrypoint,
+    const char *includeDir,
     SDL_GPUShaderStage graphicsShaderStage,
     const SDL_ShaderCross_ShaderResourceInfo *resourceInfo);
 
@@ -304,6 +312,7 @@ extern SDL_DECLSPEC SDL_GPUShader * SDLCALL SDL_ShaderCross_CompileGraphicsShade
  * \param device the SDL GPU device.
  * \param hlslSource the HLSL source code for the shader.
  * \param entrypoint the entry point function name for the shader in UTF-8.
+ * \param includeDir the include directory for shader code. Optional, can be NULL.
  * \param resourceInfo a pointer to an SDL_ShaderCross_ComputeResourceInfo.
  * \returns a compiled SDL_GPUComputePipeline
  *
@@ -313,6 +322,7 @@ extern SDL_DECLSPEC SDL_GPUComputePipeline * SDLCALL SDL_ShaderCross_CompileComp
     SDL_GPUDevice *device,
     const char *hlslSource,
     const char *entrypoint,
+    const char *includeDir,
     const SDL_ShaderCross_ComputeResourceInfo *resourceInfo);
 
 #endif /* SDL_GPU_SHADERCROSS_HLSL */

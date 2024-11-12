@@ -256,6 +256,63 @@ struct IDxcCompiler3
     const IDxcCompiler3Vtbl *lpVtbl;
 };
 
+// We need all this DxcUtils garbage for DXC include dir support. Thanks Microsoft!
+typedef struct IMalloc IMalloc;
+typedef struct IStream IStream;
+typedef struct DxcDefine DxcDefine;
+typedef struct IDxcCompilerArgs IDxcCompilerArgs;
+
+static struct
+{
+    Uint32 Data1;
+    Uint16 Data2;
+    Uint16 Data3;
+    Uint8 Data4[8];
+} CLSID_DxcUtils = {
+    .Data1 = 0x6245d6af,
+    .Data2 = 0x66e0,
+    .Data3 = 0x48fd,
+    .Data4 = {0x80, 0xb4, 0x4d, 0x27, 0x17, 0x96, 0x74, 0x8c}};
+static Uint8 IID_IDxcUtils[] = {
+    0xcb, 0xc4, 0x05, 0x46,
+    0x19, 0x20,
+    0x2a, 0x49,
+    0xad,
+    0xa4,
+    0x65,
+    0xf2,
+    0x0b,
+    0xb7,
+    0xd6,
+    0x7f
+};
+typedef struct IDxcUtilsVtbl
+{
+    HRESULT (__stdcall *QueryInterface)(void *pSelf, REFIID riid, void **ppvObject);
+    ULONG (__stdcall *AddRef)(void *pSelf);
+    ULONG (__stdcall *Release)(void *pSelf);
+
+    HRESULT (__stdcall *CreateBlobFromBlob)(void *pSelf, IDxcBlob *pBlob, UINT offset, UINT length, IDxcBlob **ppResult);
+    HRESULT (__stdcall *CreateBlobFromPinned)(void *pSelf, LPCVOID pData, UINT size, UINT codePage, IDxcBlobEncoding **pBlobEncoding);
+    HRESULT (__stdcall *MoveToBlob)(void *pSelf, LPCVOID pData, IMalloc *pIMalloc, UINT size, UINT codePage, IDxcBlobEncoding **pBlobEncoding);
+    HRESULT (__stdcall *CreateBlob)(void *pSelf, LPCVOID pData, UINT size, UINT codePage, IDxcBlobEncoding **pBlobEncoding);
+    HRESULT (__stdcall *LoadFile)(void *pSelf, LPCWSTR pFileName, UINT *pCodePage, IDxcBlobEncoding **pBlobEncoding);
+    HRESULT (__stdcall *CreateReadOnlyStreamFromBlob)(void *pSelf, IDxcBlob *pBlob, IStream **ppStream);
+    HRESULT (__stdcall *CreateDefaultIncludeHandler)(void *pSelf, IDxcIncludeHandler **ppResult);
+    HRESULT (__stdcall *GetBlobAsUtf8)(void *pSelf, IDxcBlob *pBlob, IDxcBlobUtf8 **pBlobEncoding);
+    HRESULT (__stdcall *GetBlobAsWide)(void *pSelf, IDxcBlob *pBlob, IDxcBlobWide **pBlobEncoding);
+    HRESULT (__stdcall *GetDxilContainerPart)(void *pSelf, const DxcBuffer *pShader, UINT DxcPart, void **ppPartData, UINT *pPartSizeInBytes);
+    HRESULT (__stdcall *CreateReflection)(void *pSelf, const DxcBuffer *pData, REFIID iid, void **ppvReflection);
+    HRESULT (__stdcall *BuildArguments)(void *pSelf, LPCWSTR pSourceName, LPCWSTR pEntryPoint, LPCWSTR pTargetProfile, LPCWSTR *pArguments, UINT argCount, const DxcDefine *pDefines, UINT defineCount, IDxcCompilerArgs **ppArgs);
+    HRESULT (__stdcall *GetPDBContents)(void *pSelf, IDxcBlob *pPDBBlob, IDxcBlob **ppHash, IDxcBlob **ppContainer);
+} IDxcUtilsVtbl;
+
+typedef struct IDxcUtils IDxcUtils;
+struct IDxcUtils
+{
+    const IDxcUtilsVtbl *lpVtbl;
+};
+
 /* *INDENT-ON* */ // clang-format on
 
 /* DXCompiler */
@@ -273,6 +330,7 @@ HRESULT DxcCreateInstance(REFCLSID rclsid, REFIID riid, LPVOID *ppv);
 static void *SDL_ShaderCross_INTERNAL_CompileUsingDXC(
     const char *hlslSource,
     const char *entrypoint,
+    const char *includeDir,
     SDL_ShaderCross_ShaderStage shaderStage,
     bool spirv,
     size_t *size) // filled in with number of bytes of returned buffer
@@ -282,20 +340,15 @@ static void *SDL_ShaderCross_INTERNAL_CompileUsingDXC(
     IDxcBlob *blob;
     IDxcBlobUtf8 *errors;
     size_t entryPointLength = SDL_utf8strlen(entrypoint) + 1;
-    wchar_t *entryPointUtf16 = (wchar_t *)SDL_iconv_string("WCHAR_T", "UTF-8", entrypoint, entryPointLength);
-    LPCWSTR args[] = {
-        (LPCWSTR)L"-E",
-        (LPCWSTR)entryPointUtf16,
-        NULL,
-        NULL,
-        NULL,
-        NULL
-    };
-    Uint32 argCount = 2;
+    wchar_t *entryPointUtf16 = NULL;
+    size_t includeDirLength = 0;
+    wchar_t *includeDirUtf16 = NULL;
     HRESULT ret;
 
     /* Non-static DxcInstance, since the functions we call on it are not thread-safe */
     IDxcCompiler3 *dxcInstance = NULL;
+    IDxcUtils *utils = NULL;
+    IDxcIncludeHandler *includeHandler = NULL;
 
     #if defined(SDL_PLATFORM_XBOXONE) || defined(SDL_PLATFORM_XBOXSERIES)
     if (SDL_DxcCreateInstance == NULL) {
@@ -306,15 +359,76 @@ static void *SDL_ShaderCross_INTERNAL_CompileUsingDXC(
         &CLSID_DxcCompiler,
         IID_IDxcCompiler3,
         (void **)&dxcInstance);
+
+    SDL_DxcCreateInstance(
+        &CLSID_DxcUtils,
+        &IID_IDxcUtils,
+        (void **)(&utils));
     #else
     DxcCreateInstance(
         &CLSID_DxcCompiler,
         IID_IDxcCompiler3,
         (void **)&dxcInstance);
+
+    DxcCreateInstance(
+        &CLSID_DxcUtils,
+        &IID_IDxcUtils,
+        (void **)(&utils));
     #endif
 
     if (dxcInstance == NULL) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%s", "Could not create DXC instance!");
         return NULL;
+    }
+
+    if (utils == NULL) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%s", "Could not create DXC utils instance!");
+        dxcInstance->lpVtbl->Release(dxcInstance);
+        return NULL;
+    }
+
+    utils->lpVtbl->CreateDefaultIncludeHandler(utils, &includeHandler);
+    if (includeHandler == NULL) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%s", "Failed to create a default include handler!");
+        dxcInstance->lpVtbl->Release(dxcInstance);
+        utils->lpVtbl->Release(utils);
+        return NULL;
+    }
+
+    entryPointUtf16 = (wchar_t *)SDL_iconv_string("WCHAR_T", "UTF-8", entrypoint, entryPointLength);
+    if (entryPointUtf16 == NULL) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%s", "Failed to convert entrypoint to WCHAR_T!");
+        dxcInstance->lpVtbl->Release(dxcInstance);
+        utils->lpVtbl->Release(utils);
+        return NULL;
+    }
+
+    LPCWSTR args[] = {
+        (LPCWSTR)L"-E",
+        (LPCWSTR)entryPointUtf16,
+        NULL,
+        NULL,
+        NULL,
+        NULL,
+        NULL,
+        NULL
+    };
+    Uint32 argCount = 2;
+
+    if (includeDir != NULL) {
+        includeDirLength = SDL_utf8strlen(includeDir) + 1;
+        includeDirUtf16 = (wchar_t *)SDL_iconv_string("WCHAR_T", "UTF-8", includeDir, includeDirLength);
+
+        if (includeDirUtf16 == NULL) {
+            SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%s", "Failed to convert include dir to WCHAR_T!");
+            dxcInstance->lpVtbl->Release(dxcInstance);
+            utils->lpVtbl->Release(utils);
+            SDL_free(entryPointUtf16);
+            return NULL;
+        }
+        args[2] = (LPCWSTR)L"-I";
+        args[3] = includeDirUtf16;
+        argCount += 2;
     }
 
     source.Ptr = hlslSource;
@@ -345,22 +459,27 @@ static void *SDL_ShaderCross_INTERNAL_CompileUsingDXC(
         &source,
         args,
         argCount,
-        NULL,
+        includeHandler,
         IID_IDxcResult,
         (void **)&dxcResult);
 
     SDL_free(entryPointUtf16);
+    if (includeDirUtf16 != NULL) {
+        SDL_free(includeDirUtf16);
+    }
 
     if (ret < 0) {
         SDL_LogError(SDL_LOG_CATEGORY_GPU,
                      "IDxcShaderCompiler3::Compile failed: %X",
                      ret);
         dxcInstance->lpVtbl->Release(dxcInstance);
+        utils->lpVtbl->Release(utils);
         return NULL;
     } else if (dxcResult == NULL) {
         SDL_LogError(SDL_LOG_CATEGORY_GPU,
                      "HLSL compilation failed with no IDxcResult");
         dxcInstance->lpVtbl->Release(dxcInstance);
+        utils->lpVtbl->Release(utils);
         return NULL;
     }
 
@@ -375,6 +494,7 @@ static void *SDL_ShaderCross_INTERNAL_CompileUsingDXC(
                      (char *)errors->lpVtbl->GetBufferPointer(errors));
         dxcResult->lpVtbl->Release(dxcResult);
         dxcInstance->lpVtbl->Release(dxcInstance);
+        utils->lpVtbl->Release(utils);
         return NULL;
     }
 
@@ -387,6 +507,7 @@ static void *SDL_ShaderCross_INTERNAL_CompileUsingDXC(
         SDL_LogError(SDL_LOG_CATEGORY_GPU, "IDxcBlob fetch failed");
         dxcResult->lpVtbl->Release(dxcResult);
         dxcInstance->lpVtbl->Release(dxcInstance);
+        utils->lpVtbl->Release(utils);
         return NULL;
     }
 
@@ -394,8 +515,10 @@ static void *SDL_ShaderCross_INTERNAL_CompileUsingDXC(
     void *buffer = SDL_malloc(*size);
     SDL_memcpy(buffer, blob->lpVtbl->GetBufferPointer(blob), *size);
 
+    blob->lpVtbl->Release(blob);
     dxcResult->lpVtbl->Release(dxcResult);
     dxcInstance->lpVtbl->Release(dxcInstance);
+    utils->lpVtbl->Release(utils);
 
     return buffer;
 }
@@ -403,6 +526,7 @@ static void *SDL_ShaderCross_INTERNAL_CompileUsingDXC(
 void *SDL_ShaderCross_CompileDXILFromHLSL(
     const char *hlslSource,
     const char *entrypoint,
+    const char *includeDir,
     SDL_ShaderCross_ShaderStage shaderStage,
     size_t *size)
 {
@@ -411,6 +535,7 @@ void *SDL_ShaderCross_CompileDXILFromHLSL(
     void *spirv = SDL_ShaderCross_CompileSPIRVFromHLSL(
         hlslSource,
         entrypoint,
+        includeDir,
         shaderStage,
         &spirvSize);
 
@@ -433,6 +558,7 @@ void *SDL_ShaderCross_CompileDXILFromHLSL(
     return SDL_ShaderCross_INTERNAL_CompileUsingDXC(
         translatedSource,
         entrypoint,
+        includeDir,
         shaderStage,
         false,
         size);
@@ -441,12 +567,14 @@ void *SDL_ShaderCross_CompileDXILFromHLSL(
 void *SDL_ShaderCross_CompileSPIRVFromHLSL(
     const char *hlslSource,
     const char *entrypoint,
+    const char *includeDir,
     SDL_ShaderCross_ShaderStage shaderStage,
     size_t *size)
 {
     return SDL_ShaderCross_INTERNAL_CompileUsingDXC(
         hlslSource,
         entrypoint,
+        includeDir,
         shaderStage,
         true,
         size);
@@ -456,6 +584,7 @@ static void *SDL_ShaderCross_INTERNAL_CreateShaderFromDXC(
     SDL_GPUDevice *device,
     const char *hlslSource,
     const char *entrypoint,
+    const char *includeDir,
     SDL_ShaderCross_ShaderStage shaderStage,
     const void *resourceInfo,
     bool spirv)
@@ -469,6 +598,7 @@ static void *SDL_ShaderCross_INTERNAL_CreateShaderFromDXC(
         bytecode = SDL_ShaderCross_CompileDXILFromHLSL(
             hlslSource,
             entrypoint,
+            includeDir,
             shaderStage,
             &bytecodeSize);
     } else {
@@ -476,6 +606,7 @@ static void *SDL_ShaderCross_INTERNAL_CreateShaderFromDXC(
         bytecode = SDL_ShaderCross_INTERNAL_CompileUsingDXC(
             hlslSource,
             entrypoint,
+            includeDir,
             shaderStage,
             spirv,
             &bytecodeSize);
@@ -640,6 +771,7 @@ static ID3DBlob *SDL_ShaderCross_INTERNAL_CompileDXBC(
 void *SDL_ShaderCross_CompileDXBCFromHLSL(
     const char *hlslSource,
     const char *entrypoint,
+    const char *includeDir,
     SDL_ShaderCross_ShaderStage shaderStage,
     size_t *size) // filled in with number of bytes of returned buffer
 {
@@ -648,6 +780,7 @@ void *SDL_ShaderCross_CompileDXBCFromHLSL(
     void *spirv = SDL_ShaderCross_CompileSPIRVFromHLSL(
         hlslSource,
         entrypoint,
+        includeDir,
         shaderStage,
         &spirv_size);
 
@@ -701,6 +834,7 @@ static void *SDL_ShaderCross_INTERNAL_CreateShaderFromDXBC(
     SDL_GPUDevice *device,
     const char *hlslSource,
     const char *entrypoint,
+    const char *includeDir,
     SDL_ShaderCross_ShaderStage shaderStage,
     const void *resourceInfo)
 {
@@ -710,6 +844,7 @@ static void *SDL_ShaderCross_INTERNAL_CreateShaderFromDXBC(
     void *bytecode = SDL_ShaderCross_CompileDXBCFromHLSL(
         hlslSource,
         entrypoint,
+        includeDir,
         shaderStage,
         &bytecodeSize);
 
@@ -761,6 +896,7 @@ static void *SDL_ShaderCross_INTERNAL_CreateShaderFromHLSL(
     SDL_GPUDevice *device,
     const char *hlslSource,
     const char *entrypoint,
+    const char *includeDir,
     SDL_ShaderCross_ShaderStage shaderStage,
     const void *resourceInfo)
 {
@@ -770,6 +906,7 @@ static void *SDL_ShaderCross_INTERNAL_CreateShaderFromHLSL(
             device,
             hlslSource,
             entrypoint,
+            includeDir,
             shaderStage,
             resourceInfo);
     }
@@ -778,6 +915,7 @@ static void *SDL_ShaderCross_INTERNAL_CreateShaderFromHLSL(
             device,
             hlslSource,
             entrypoint,
+            includeDir,
             shaderStage,
             resourceInfo,
             false);
@@ -787,6 +925,7 @@ static void *SDL_ShaderCross_INTERNAL_CreateShaderFromHLSL(
             device,
             hlslSource,
             entrypoint,
+            includeDir,
             shaderStage,
             resourceInfo,
             true);
@@ -796,6 +935,7 @@ static void *SDL_ShaderCross_INTERNAL_CreateShaderFromHLSL(
         void *spirv = SDL_ShaderCross_CompileSPIRVFromHLSL(
             hlslSource,
             entrypoint,
+            includeDir,
             shaderStage,
             &bytecodeSize);
         if (spirv == NULL) {
@@ -831,6 +971,7 @@ SDL_GPUShader *SDL_ShaderCross_CompileGraphicsShaderFromHLSL(
     SDL_GPUDevice *device,
     const char *hlslSource,
     const char *entrypoint,
+    const char *includeDir,
     SDL_GPUShaderStage graphicsShaderStage,
     const SDL_ShaderCross_ShaderResourceInfo *resourceInfo)
 {
@@ -838,6 +979,7 @@ SDL_GPUShader *SDL_ShaderCross_CompileGraphicsShaderFromHLSL(
         device,
         hlslSource,
         entrypoint,
+        includeDir,
         (SDL_ShaderCross_ShaderStage)graphicsShaderStage,
         (const void *)resourceInfo);
 }
@@ -846,12 +988,14 @@ SDL_GPUComputePipeline *SDL_ShaderCross_CompileComputePipelineFromHLSL(
     SDL_GPUDevice *device,
     const char *hlslSource,
     const char *entrypoint,
+    const char *includeDir,
     const SDL_ShaderCross_ComputeResourceInfo *resourceInfo)
 {
     return (SDL_GPUComputePipeline *)SDL_ShaderCross_INTERNAL_CreateShaderFromHLSL(
         device,
         hlslSource,
         entrypoint,
+        includeDir,
         SDL_SHADERCROSS_SHADERSTAGE_COMPUTE,
         (const void *)resourceInfo);
 }
@@ -1449,12 +1593,14 @@ static void *SDL_ShaderCross_INTERNAL_CompileFromSPIRV(
             createInfo.code = SDL_ShaderCross_CompileDXBCFromHLSL(
                 transpileContext->translated_source,
                 transpileContext->cleansed_entrypoint,
+                NULL,
                 shaderStage,
                 &createInfo.code_size);
         } else if (targetFormat == SDL_GPU_SHADERFORMAT_DXIL) {
             createInfo.code = SDL_ShaderCross_CompileDXILFromHLSL(
                 transpileContext->translated_source,
                 transpileContext->cleansed_entrypoint,
+                NULL,
                 shaderStage,
                 &createInfo.code_size);
         } else { // MSL
@@ -1479,12 +1625,14 @@ static void *SDL_ShaderCross_INTERNAL_CompileFromSPIRV(
             createInfo.code = SDL_ShaderCross_CompileDXBCFromHLSL(
                 transpileContext->translated_source,
                 transpileContext->cleansed_entrypoint,
+                NULL,
                 shaderStage,
                 &createInfo.code_size);
         } else if (targetFormat == SDL_GPU_SHADERFORMAT_DXIL) {
             createInfo.code = SDL_ShaderCross_CompileDXILFromHLSL(
                 transpileContext->translated_source,
                 transpileContext->cleansed_entrypoint,
+                NULL,
                 shaderStage,
                 &createInfo.code_size);
         } else { // MSL
@@ -1575,6 +1723,7 @@ void *SDL_ShaderCross_CompileDXBCFromSPIRV(
     void *result = SDL_ShaderCross_CompileDXBCFromHLSL(
         context->translated_source,
         context->cleansed_entrypoint,
+        NULL,
         shaderStage,
         size);
 
@@ -1600,6 +1749,7 @@ void *SDL_ShaderCross_CompileDXILFromSPIRV(
     void *result = SDL_ShaderCross_CompileDXILFromHLSL(
         context->translated_source,
         context->cleansed_entrypoint,
+        NULL,
         shaderStage,
         size);
 
