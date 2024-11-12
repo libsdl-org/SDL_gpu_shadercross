@@ -793,7 +793,7 @@ void *SDL_ShaderCross_CompileDXBCFromHLSL(
         spirv_size,
         entrypoint,
         shaderStage,
-        SDL_SHADERCROSS_SHADERMODEL_5_0
+        SDL_SHADERCROSS_SHADERMODEL_5_1
     );
     SDL_free(spirv);
 
@@ -803,11 +803,11 @@ void *SDL_ShaderCross_CompileDXBCFromHLSL(
 
     const char *shaderProfile;
     if (shaderStage == SDL_SHADERCROSS_SHADERSTAGE_VERTEX) {
-        shaderProfile = "vs_5_0";
+        shaderProfile = "vs_5_1";
     } else if (shaderStage == SDL_SHADERCROSS_SHADERSTAGE_FRAGMENT) {
-        shaderProfile = "ps_5_0";
+        shaderProfile = "ps_5_1";
     } else { // compute
-        shaderProfile = "cs_5_0";
+        shaderProfile = "cs_5_1";
     }
 
     ID3DBlob *blob = SDL_ShaderCross_INTERNAL_CompileDXBC(
@@ -1552,7 +1552,7 @@ static void *SDL_ShaderCross_INTERNAL_CompileFromSPIRV(
 
     if (targetFormat == SDL_GPU_SHADERFORMAT_DXBC) {
         backend = SPVC_BACKEND_HLSL;
-        shadermodel = 50;
+        shadermodel = 51;
     } else if (targetFormat == SDL_GPU_SHADERFORMAT_DXIL) {
         backend = SPVC_BACKEND_HLSL;
         shadermodel = 60;
@@ -1679,8 +1679,8 @@ void *SDL_ShaderCross_TranspileHLSLFromSPIRV(
 {
     unsigned int spirv_cross_shader_model = 0;
 
-    if (shaderModel == SDL_SHADERCROSS_SHADERMODEL_5_0) {
-        spirv_cross_shader_model = 50;
+    if (shaderModel == SDL_SHADERCROSS_SHADERMODEL_5_1) {
+        spirv_cross_shader_model = 51;
     } else if (shaderModel == SDL_SHADERCROSS_SHADERMODEL_6_0) {
         spirv_cross_shader_model = 60;
     } else {
@@ -1714,7 +1714,7 @@ void *SDL_ShaderCross_CompileDXBCFromSPIRV(
 {
     SPIRVTranspileContext *context = SDL_ShaderCross_INTERNAL_TranspileFromSPIRV(
         SPVC_BACKEND_HLSL,
-        50,
+        51,
         shaderStage,
         bytecode,
         bytecodeSize,

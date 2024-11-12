@@ -42,7 +42,7 @@ void print_help(void)
     SDL_Log("  %-*s %s", column_width, "-d | --dest <value>", "Destination format. May be inferred from the filename. Values: [DXBC, DXIL, MSL, SPIRV, HLSL]");
     SDL_Log("  %-*s %s", column_width, "-t | --stage <value>", "Shader stage. May be inferred from the filename. Values: [vertex, fragment, compute]");
     SDL_Log("  %-*s %s", column_width, "-e | --entrypoint <value>", "Entrypoint function name. Default: \"main\".");
-    SDL_Log("  %-*s %s", column_width, "-m | --shadermodel <value>", "HLSL Shader Model. Only used with HLSL destination. Values: [5.0, 6.0]");
+    SDL_Log("  %-*s %s", column_width, "-m | --shadermodel <value>", "HLSL Shader Model. Only used with HLSL destination. Values: [5.1, 6.0]");
     SDL_Log("  %-*s %s", column_width, "-I | --include <value>", "HLSL include directory. Only used with HLSL source. Optional.");
     SDL_Log("  %-*s %s", column_width, "-o | --output <value>", "Output file.");
 }
@@ -156,8 +156,8 @@ int main(int argc, char *argv[])
                     return 1;
                 }
                 i += 1;
-                if (SDL_strcmp(argv[i], "5.0") == 0) {
-                    shaderModel = SDL_SHADERCROSS_SHADERMODEL_5_0;
+                if (SDL_strcmp(argv[i], "5.1") == 0) {
+                    shaderModel = SDL_SHADERCROSS_SHADERMODEL_5_1;
                     shaderModelValid = true;
                 } else if (SDL_strcmp(argv[i], "6.0") == 0) {
                     shaderModel = SDL_SHADERCROSS_SHADERMODEL_6_0;

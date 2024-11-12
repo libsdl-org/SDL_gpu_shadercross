@@ -56,7 +56,7 @@ typedef enum SDL_ShaderCross_ShaderStage
 typedef enum SDL_ShaderCross_ShaderModel
 {
     SDL_SHADERCROSS_SHADERMODEL_INVALID,
-    SDL_SHADERCROSS_SHADERMODEL_5_0,
+    SDL_SHADERCROSS_SHADERMODEL_5_1,
     SDL_SHADERCROSS_SHADERMODEL_6_0
 } SDL_ShaderCross_ShaderModel;
 
