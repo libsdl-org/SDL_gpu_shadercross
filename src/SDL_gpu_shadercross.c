@@ -1681,7 +1681,6 @@ void *SDL_ShaderCross_CompileDXBCFromSPIRV(
     const Uint8 *bytecode,
     size_t bytecodeSize,
     const char *entrypoint,
-    const char *includeDir,
     SDL_ShaderCross_ShaderStage shaderStage,
     size_t *size)
 {
@@ -1696,7 +1695,7 @@ void *SDL_ShaderCross_CompileDXBCFromSPIRV(
     void *result = SDL_ShaderCross_CompileDXBCFromHLSL(
         context->translated_source,
         context->cleansed_entrypoint,
-        includeDir,
+        NULL,
         shaderStage,
         size);
 
@@ -1708,7 +1707,6 @@ void *SDL_ShaderCross_CompileDXILFromSPIRV(
     const Uint8 *bytecode,
     size_t bytecodeSize,
     const char *entrypoint,
-    const char *includeDir,
     SDL_ShaderCross_ShaderStage shaderStage,
     size_t *size)
 {
@@ -1723,7 +1721,7 @@ void *SDL_ShaderCross_CompileDXILFromSPIRV(
     void *result = SDL_ShaderCross_CompileDXILFromHLSL(
         context->translated_source,
         context->cleansed_entrypoint,
-        includeDir,
+        NULL,
         shaderStage,
         size);
 

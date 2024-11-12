@@ -280,7 +280,6 @@ int main(int argc, char *argv[])
                     fileData,
                     fileSize,
                     entrypointName,
-                    includeDir,
                     shaderStage,
                     &bytecodeSize);
                 SDL_WriteIO(outputIO, buffer, bytecodeSize);
@@ -293,7 +292,6 @@ int main(int argc, char *argv[])
                     fileData,
                     fileSize,
                     entrypointName,
-                    includeDir,
                     shaderStage,
                     &bytecodeSize);
                 SDL_WriteIO(outputIO, buffer, bytecodeSize);

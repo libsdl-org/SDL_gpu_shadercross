@@ -144,7 +144,6 @@ extern SDL_DECLSPEC void * SDLCALL SDL_ShaderCross_TranspileHLSLFromSPIRV(
  * \param bytecode the SPIRV bytecode.
  * \param bytecodeSize the length of the SPIRV bytecode.
  * \param entrypoint the entry point function name for the shader in UTF-8.
- * \param includeDir the include directory for shader code. Optional, can be NULL.
  * \param shaderStage the shader stage to compile the shader with.
  * \param size filled in with the bytecode buffer size.
  */
@@ -152,7 +151,6 @@ extern SDL_DECLSPEC void * SDLCALL SDL_ShaderCross_CompileDXBCFromSPIRV(
     const Uint8 *bytecode,
     size_t bytecodeSize,
     const char *entrypoint,
-    const char *includeDir,
     SDL_ShaderCross_ShaderStage shaderStage,
     size_t *size);
 
@@ -164,7 +162,6 @@ extern SDL_DECLSPEC void * SDLCALL SDL_ShaderCross_CompileDXBCFromSPIRV(
  * \param bytecode the SPIRV bytecode.
  * \param bytecodeSize the length of the SPIRV bytecode.
  * \param entrypoint the entry point function name for the shader in UTF-8.
- * \param includeDir the include directory for shader code. Optional, can be NULL.
  * \param shaderStage the shader stage to compile the shader with.
  * \param size filled in with the bytecode buffer size.
  */
@@ -172,7 +169,6 @@ extern SDL_DECLSPEC void * SDLCALL SDL_ShaderCross_CompileDXILFromSPIRV(
     const Uint8 *bytecode,
     size_t bytecodeSize,
     const char *entrypoint,
-    const char *includeDir,
     SDL_ShaderCross_ShaderStage shaderStage,
     size_t *size);
 
