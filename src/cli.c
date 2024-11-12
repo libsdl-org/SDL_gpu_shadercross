@@ -43,6 +43,7 @@ void print_help(void)
     SDL_Log("  %-*s %s", column_width, "-t | --stage <value>", "Shader stage. May be inferred from the filename. Values: [vertex, fragment, compute]");
     SDL_Log("  %-*s %s", column_width, "-e | --entrypoint <value>", "Entrypoint function name. Default: \"main\".");
     SDL_Log("  %-*s %s", column_width, "-m | --shadermodel <value>", "HLSL Shader Model. Only used with HLSL destination. Values: [5.0, 6.0]");
+    SDL_Log("  %-*s %s", column_width, "-i | --include <value>", "HLSL include directory. Only used with HLSL source. Optional.");
     SDL_Log("  %-*s %s", column_width, "-o | --output <value>", "Output file.");
 }
 
@@ -60,6 +61,7 @@ int main(int argc, char *argv[])
     SDL_ShaderCross_ShaderModel shaderModel = SDL_SHADERCROSS_SHADERMODEL_INVALID;
     char *outputFilename = NULL;
     char *entrypointName = "main";
+    char *includeDir = NULL;
 
     char *filename = NULL;
     size_t fileSize = 0;
@@ -165,6 +167,14 @@ int main(int argc, char *argv[])
                     print_help();
                     return 1;
                 }
+            } else if (SDL_strcmp(arg, "-i") == 0 || SDL_strcmp(arg, "--include") == 0) {
+                if (i + 1 >= argc) {
+                    SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%s requires an argument", arg);
+                    print_help();
+                    return 1;
+                }
+                i += 1;
+                includeDir = argv[i];
             } else if (SDL_strcmp(arg, "-o") == 0 || SDL_strcmp(arg, "--output") == 0) {
                 if (i + 1 >= argc) {
                     SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%s requires an argument", arg);
@@ -270,6 +280,7 @@ int main(int argc, char *argv[])
                     fileData,
                     fileSize,
                     entrypointName,
+                    includeDir,
                     shaderStage,
                     &bytecodeSize);
                 SDL_WriteIO(outputIO, buffer, bytecodeSize);
@@ -282,6 +293,7 @@ int main(int argc, char *argv[])
                     fileData,
                     fileSize,
                     entrypointName,
+                    includeDir,
                     shaderStage,
                     &bytecodeSize);
                 SDL_WriteIO(outputIO, buffer, bytecodeSize);
@@ -339,6 +351,7 @@ int main(int argc, char *argv[])
                 Uint8 *buffer = SDL_ShaderCross_CompileDXBCFromHLSL(
                     fileData,
                     entrypointName,
+                    includeDir,
                     shaderStage,
                     &bytecodeSize);
                 SDL_WriteIO(outputIO, buffer, bytecodeSize);
@@ -350,6 +363,7 @@ int main(int argc, char *argv[])
                 Uint8 *buffer = SDL_ShaderCross_CompileDXILFromHLSL(
                     fileData,
                     entrypointName,
+                    includeDir,
                     shaderStage,
                     &bytecodeSize);
                 SDL_WriteIO(outputIO, buffer, bytecodeSize);
@@ -361,6 +375,7 @@ int main(int argc, char *argv[])
                 void *spirv = SDL_ShaderCross_CompileSPIRVFromHLSL(
                     fileData,
                     entrypointName,
+                    includeDir,
                     shaderStage,
                     &bytecodeSize);
                 if (spirv == NULL) {
@@ -382,6 +397,7 @@ int main(int argc, char *argv[])
                 Uint8 *buffer = SDL_ShaderCross_CompileSPIRVFromHLSL(
                     fileData,
                     entrypointName,
+                    includeDir,
                     shaderStage,
                     &bytecodeSize);
                 SDL_WriteIO(outputIO, buffer, bytecodeSize);
@@ -399,6 +415,7 @@ int main(int argc, char *argv[])
                 void *spirv = SDL_ShaderCross_CompileSPIRVFromHLSL(
                     fileData,
                     entrypointName,
+                    includeDir,
                     shaderStage,
                     &bytecodeSize);
 
