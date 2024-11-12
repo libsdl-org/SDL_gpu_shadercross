@@ -168,6 +168,11 @@ int main(int argc, char *argv[])
                     return 1;
                 }
             } else if (SDL_strcmp(arg, "-i") == 0 || SDL_strcmp(arg, "--include") == 0) {
+                if (includeDir) {
+                    SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "'%s' can only be used once", arg);
+                    print_help();
+                    return 1;
+                }
                 if (i + 1 >= argc) {
                     SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%s requires an argument", arg);
                     print_help();
