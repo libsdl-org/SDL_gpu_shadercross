@@ -340,30 +340,10 @@ static void *SDL_ShaderCross_INTERNAL_CompileUsingDXC(
     IDxcBlob *blob;
     IDxcBlobUtf8 *errors;
     size_t entryPointLength = SDL_utf8strlen(entrypoint) + 1;
-    wchar_t *entryPointUtf16 = (wchar_t *)SDL_iconv_string("WCHAR_T", "UTF-8", entrypoint, entryPointLength);
+    wchar_t *entryPointUtf16 = NULL;
     size_t includeDirLength = 0;
     wchar_t *includeDirUtf16 = NULL;
-
-    LPCWSTR args[] = {
-        (LPCWSTR)L"-E",
-        (LPCWSTR)entryPointUtf16,
-        NULL,
-        NULL,
-        NULL,
-        NULL,
-        NULL,
-        NULL
-    };
-    Uint32 argCount = 2;
     HRESULT ret;
-
-    if (includeDir != NULL) {
-        includeDirLength = SDL_utf8strlen(includeDir) + 1;
-        includeDirUtf16 = (wchar_t *)SDL_iconv_string("WCHAR_T", "UTF-8", includeDir, includeDirLength);
-        args[2] = (LPCWSTR)L"-I";
-        args[3] = includeDirUtf16;
-        argCount += 2;
-    }
 
     /* Non-static DxcInstance, since the functions we call on it are not thread-safe */
     IDxcCompiler3 *dxcInstance = NULL;
@@ -403,10 +383,53 @@ static void *SDL_ShaderCross_INTERNAL_CompileUsingDXC(
 
     if (utils == NULL) {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%s", "Could not create DXC utils instance!");
+        dxcInstance->lpVtbl->Release(dxcInstance);
         return NULL;
     }
 
     utils->lpVtbl->CreateDefaultIncludeHandler(utils, &includeHandler);
+    if (includeHandler == NULL) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%s", "Failed to create a default include handler!");
+        dxcInstance->lpVtbl->Release(dxcInstance);
+        utils->lpVtbl->Release(utils);
+        return NULL;
+    }
+
+    entryPointUtf16 = (wchar_t *)SDL_iconv_string("WCHAR_T", "UTF-8", entrypoint, entryPointLength);
+    if (entryPointUtf16 == NULL) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%s", "Failed to convert entrypoint to WCHAR_T!");
+        dxcInstance->lpVtbl->Release(dxcInstance);
+        utils->lpVtbl->Release(utils);
+        return NULL;
+    }
+
+    LPCWSTR args[] = {
+        (LPCWSTR)L"-E",
+        (LPCWSTR)entryPointUtf16,
+        NULL,
+        NULL,
+        NULL,
+        NULL,
+        NULL,
+        NULL
+    };
+    Uint32 argCount = 2;
+
+    if (includeDir != NULL) {
+        includeDirLength = SDL_utf8strlen(includeDir) + 1;
+        includeDirUtf16 = (wchar_t *)SDL_iconv_string("WCHAR_T", "UTF-8", includeDir, includeDirLength);
+
+        if (includeDirUtf16 == NULL) {
+            SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%s", "Failed to convert include dir to WCHAR_T!");
+            dxcInstance->lpVtbl->Release(dxcInstance);
+            utils->lpVtbl->Release(utils);
+            SDL_free(entryPointUtf16);
+            return NULL;
+        }
+        args[2] = (LPCWSTR)L"-I";
+        args[3] = includeDirUtf16;
+        argCount += 2;
+    }
 
     source.Ptr = hlslSource;
     source.Size = SDL_strlen(hlslSource) + 1;
