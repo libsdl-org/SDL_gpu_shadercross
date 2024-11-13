@@ -1,5 +1,5 @@
 #include <SDL3/SDL.h>
-#include <SDL3_gpu_shadercross/SDL_gpu_shadercross.h>
+#include <SDL3_shadercross/SDL_shadercross.h>
 
 int main(int argc, char *argv[]) {
     if (!SDL_Init(0)) {

@@ -7,7 +7,7 @@ Name: @PROJECT_NAME@
 Description: Support SPIR-V and HLSL on various backends
 Version: @PROJECT_VERSION@
 Requires: sdl3 >= @SDL_REQUIRED_VERSION@
-Libs: -L${libdir} -Wl,-rpath,${libdir} -Wl,--enable-new-dtags -lSDL3_gpu_shadercross
+Libs: -L${libdir} -Wl,-rpath,${libdir} -Wl,--enable-new-dtags -lSDL3_shadercross
 Requires.private: @PC_REQUIRES@
 Libs.private: @PC_LIBS@
 Cflags: -I${includedir}

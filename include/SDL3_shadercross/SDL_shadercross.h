@@ -19,8 +19,8 @@
   3. This notice may not be removed or altered from any source distribution.
 */
 
-#ifndef SDL_GPU_SHADERCROSS_H
-#define SDL_GPU_SHADERCROSS_H
+#ifndef SDL_SHADERCROSS_H
+#define SDL_SHADERCROSS_H
 
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_begin_code.h>
@@ -34,9 +34,9 @@ extern "C" {
 /**
  * Printable format: "%d.%d.%d", MAJOR, MINOR, MICRO
  */
-#define SDL_GPU_SHADERCROSS_MAJOR_VERSION 3
-#define SDL_GPU_SHADERCROSS_MINOR_VERSION 0
-#define SDL_GPU_SHADERCROSS_MICRO_VERSION 0
+#define SDL_SHADERCROSS_MAJOR_VERSION 3
+#define SDL_SHADERCROSS_MINOR_VERSION 0
+#define SDL_SHADERCROSS_MICRO_VERSION 0
 
 typedef enum SDL_ShaderCross_ShaderStage
 {
@@ -283,4 +283,4 @@ extern SDL_DECLSPEC SDL_GPUComputePipeline * SDLCALL SDL_ShaderCross_CompileComp
 #endif
 #include <SDL3/SDL_close_code.h>
 
-#endif /* SDL_GPU_SHADERCROSS_H */
+#endif /* SDL_SHADERCROSS_H */

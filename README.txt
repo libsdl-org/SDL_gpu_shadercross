@@ -1,4 +1,4 @@
-SDL_gpu_shadercross
+SDL_shadercross
 
 This is a library for translating shaders to different formats, intended for use with SDL's GPU API.
 It takes SPIRV or HLSL as the source and outputs DXBC, DXIL, SPIRV, MSL, or HLSL.

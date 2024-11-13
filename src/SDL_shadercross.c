@@ -19,7 +19,7 @@
   3. This notice may not be removed or altered from any source distribution.
 */
 
-#include <SDL3_gpu_shadercross/SDL_gpu_shadercross.h>
+#include <SDL3_shadercross/SDL_shadercross.h>
 #include <SDL3/SDL_loadso.h>
 #include <SDL3/SDL_log.h>
 
@@ -35,7 +35,7 @@ typedef void *LPVOID;
 typedef void *REFIID;
 
 /* DXIL via DXC */
-#ifdef SDL_GPU_SHADERCROSS_DXC
+#ifdef SDL_SHADERCROSS_DXC
 
 /* dxcompiler Type Definitions */
 typedef int BOOL;
@@ -326,7 +326,7 @@ typedef HRESULT(__stdcall *DxcCreateInstanceProc)(
 HRESULT DxcCreateInstance(REFCLSID rclsid, REFIID riid, LPVOID *ppv);
 #endif
 
-#endif /* SDL_GPU_SHADERCROSS_DXC */
+#endif /* SDL_SHADERCROSS_DXC */
 
 static void *SDL_ShaderCross_INTERNAL_CompileUsingDXC(
     const char *hlslSource,
@@ -336,7 +336,7 @@ static void *SDL_ShaderCross_INTERNAL_CompileUsingDXC(
     bool spirv,
     size_t *size) // filled in with number of bytes of returned buffer
 {
-#ifdef SDL_GPU_SHADERCROSS_DXC
+#ifdef SDL_SHADERCROSS_DXC
     DxcBuffer source;
     IDxcResult *dxcResult;
     IDxcBlob *blob;
@@ -526,7 +526,7 @@ static void *SDL_ShaderCross_INTERNAL_CompileUsingDXC(
 #else
     SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%s", "Shadercross was not built with DXC support, cannot compile using DXC!");
     return NULL;
-#endif /* SDL_GPU_SHADERCROSS_DXC */
+#endif /* SDL_SHADERCROSS_DXC */
 }
 
 void *SDL_ShaderCross_CompileDXILFromHLSL(
@@ -1887,7 +1887,7 @@ void *SDL_ShaderCross_CompileDXILFromSPIRV(
     SDL_ShaderCross_ShaderStage shaderStage,
     size_t *size)
 {
-#ifndef SDL_GPU_SHADERCROSS_DXC
+#ifndef SDL_SHADERCROSS_DXC
     SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%s", "Shadercross was not compiled with DXC support, cannot compile to SPIR-V!");
     return NULL;
 #endif
@@ -1955,7 +1955,7 @@ static void *SDL_ShaderCross_INTERNAL_CreateShaderFromSPIRV(
         if ((shader_formats & SDL_GPU_SHADERFORMAT_DXBC) && SDL_D3DCompile != NULL) {
             format = SDL_GPU_SHADERFORMAT_DXBC;
         }
-#ifdef SDL_GPU_SHADERCROSS_DXC
+#ifdef SDL_SHADERCROSS_DXC
         else if (shader_formats & SDL_GPU_SHADERFORMAT_DXIL) {
             format = SDL_GPU_SHADERFORMAT_DXIL;
         }
@@ -2072,7 +2072,7 @@ SDL_GPUShaderFormat SDL_ShaderCross_GetHLSLShaderFormats(void)
     SDL_GPUShaderFormat supportedFormats = 0;
 
     /* DXC allows compilation from HLSL to DXIL and SPIRV */
-#ifdef SDL_GPU_SHADERCROSS_DXC
+#ifdef SDL_SHADERCROSS_DXC
     supportedFormats |= SDL_GPU_SHADERFORMAT_DXIL | SDL_GPU_SHADERFORMAT_DXBC;
 #endif
 

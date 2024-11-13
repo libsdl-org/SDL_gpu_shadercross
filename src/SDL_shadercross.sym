@@ -1,4 +1,4 @@
-SDL3_gpu_shadercross_0.0.0 {
+SDL3_shadercross_0.0.0 {
   global:
     SDL_ShaderCross_Init;
     SDL_ShaderCross_Quit;

@@ -39,7 +39,7 @@ endif()
 
 message("To make use of the prebuilt DirectXShaderCompiler libraries, configure with:")
 message("")
-message("  -DSDLGPUSHADERCROSS_VENDORED=OFF")
+message("  -DSDLSHADERCROSS_VENDORED=OFF")
 message("")
 message("and")
 message("")

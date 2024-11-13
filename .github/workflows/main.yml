@@ -16,11 +16,11 @@ jobs:
       fail-fast: false
       matrix:
         platform:
-          - { name: Windows (MSVC),                os: windows-2019,   build-spirv-cross: true,  vendored: false, shell: sh, msvc: true, artifact: 'SDL3_gpu_shadercross-VC-x64' }
-          - { name: Windows (mingw64),             os: windows-latest, build-spirv-cross: false, vendored: false, shell: 'msys2 {0}', msystem: mingw64, msys-env: mingw-w64-x86_64, artifact: 'SDL3_gpu_shadercross-mingw64' }
-          - { name: Ubuntu 22.04,                  os: ubuntu-22.04,   build-spirv-cross: true,  vendored: false, shell: sh, artifact: 'SDL3_gpu_shadercross-linux-x64' }
-          - { name: Steam Linux Runtime (Sniper),  os: ubuntu-latest,  build-spirv-cross: false,  vendored: true, shell: sh, artifact: 'SDL3_gpu_shadercross-slrsniper', container: 'registry.gitlab.steamos.cloud/steamrt/sniper/sdk:beta' }
-          - { name: macOS,                         os: macos-latest,   build-spirv-cross: true,  vendored: true,  shell: sh, artifact: 'SDL3_gpu_shadercross-macos-arm64' }
+          - { name: Windows (MSVC),                os: windows-2019,   build-spirv-cross: true,  vendored: false, shell: sh, msvc: true, artifact: 'SDL3_shadercross-VC-x64' }
+          - { name: Windows (mingw64),             os: windows-latest, build-spirv-cross: false, vendored: false, shell: 'msys2 {0}', msystem: mingw64, msys-env: mingw-w64-x86_64, artifact: 'SDL3_shadercross-mingw64' }
+          - { name: Ubuntu 22.04,                  os: ubuntu-22.04,   build-spirv-cross: true,  vendored: false, shell: sh, artifact: 'SDL3_shadercross-linux-x64' }
+          - { name: Steam Linux Runtime (Sniper),  os: ubuntu-latest,  build-spirv-cross: false,  vendored: true, shell: sh, artifact: 'SDL3_shadercross-slrsniper', container: 'registry.gitlab.steamos.cloud/steamrt/sniper/sdk:beta' }
+          - { name: macOS,                         os: macos-latest,   build-spirv-cross: true,  vendored: true,  shell: sh, artifact: 'SDL3_shadercross-macos-arm64' }
 
     steps:
       - uses: actions/checkout@v4
@@ -95,14 +95,14 @@ jobs:
         run: |
           cmake -S . -B build -GNinja \
             -DCMAKE_BUILD_TYPE=Release \
-            -DSDLGPUSHADERCROSS_SHARED=ON \
-            -DSDLGPUSHADERCROSS_STATIC=ON \
-            -DSDLGPUSHADERCROSS_VENDORED=${{ matrix.platform.vendored }} \
-            -DSDLGPUSHADERCROSS_CLI=ON \
-            -DSDLGPUSHADERCROSS_WERROR=ON \
-            -DSDLGPUSHADERCROSS_INSTALL=ON \
-            -DSDLGPUSHADERCROSS_INSTALL_RUNTIME=ON \
-            -DSDLGPUSHADERCROSS_INSTALL_CPACK=ON \
+            -DSDLSHADERCROSS_SHARED=ON \
+            -DSDLSHADERCROSS_STATIC=ON \
+            -DSDLSHADERCROSS_VENDORED=${{ matrix.platform.vendored }} \
+            -DSDLSHADERCROSS_CLI=ON \
+            -DSDLSHADERCROSS_WERROR=ON \
+            -DSDLSHADERCROSS_INSTALL=ON \
+            -DSDLSHADERCROSS_INSTALL_RUNTIME=ON \
+            -DSDLSHADERCROSS_INSTALL_CPACK=ON \
             -DCMAKE_INSTALL_PREFIX="${PWD}/prefix"
 
       - name: Build (CMake)
@@ -114,7 +114,7 @@ jobs:
         if: ${{ always() && steps.build.outcome == 'success' }}
         run: |
           cmake --install build/ --config Release
-          echo "SDL3_gpu_shadercross_ROOT=${PWD}/prefix" >>${GITHUB_ENV}
+          echo "SDL3_shadercross_ROOT=${PWD}/prefix" >>${GITHUB_ENV}
       - name: Package (CPack)
         id: package
         if: ${{ always() && steps.build.outcome == 'success' }}
