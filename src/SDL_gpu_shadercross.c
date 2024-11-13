@@ -787,7 +787,6 @@ static void *SDL_ShaderCross_INTERNAL_CreateShaderFromHLSL(
     const char *includeDir,
     SDL_ShaderCross_ShaderStage shaderStage)
 {
-    SDL_GPUShaderFormat format = SDL_GetGPUShaderFormats(device);
     size_t bytecodeSize;
 
     // We'll go through SPIRV-Cross for all of these to more easily obtain reflection metadata.
