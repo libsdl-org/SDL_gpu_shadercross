@@ -23,10 +23,6 @@
 #include <SDL3/SDL_loadso.h>
 #include <SDL3/SDL_log.h>
 
-#ifndef SDL_GPU_SHADERCROSS_DXC
-#define SDL_GPU_SHADERCROSS_DXC 1
-#endif /* SDL_GPU_SHADERCROSS_DXC */
-
 /* Win32 Type Definitions */
 
 typedef int HRESULT;
