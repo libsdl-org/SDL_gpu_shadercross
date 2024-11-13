@@ -33,6 +33,7 @@ else()
 endif()
 
 # Options
+option(SDLGPUSHADERCROSS_DXC "Enable HLSL compilation via DXC" ON)
 option(SDLGPUSHADERCROSS_SHARED "Build shared SDL_gpu_shadercross library" ${SDLGPUSHADERCROSS_SHARED_DEFAULT})
 option(SDLGPUSHADERCROSS_STATIC "Build static SDL_gpu_shadercross library" ${SDLGPUSHADERCROSS_STATIC_DEFAULT})
 option(SDLGPUSHADERCROSS_SPIRVCROSS_SHARED "Link to shared library variants of dependencies" ON)
@@ -208,6 +209,10 @@ endif()
 foreach(target IN LISTS SDL3_gpu_shadercross_targets)
 	sdl_add_warning_options(${target} WARNING_AS_ERROR ${SDLGPUSHADERCROSS_WERROR})
 	target_compile_features(${target} PRIVATE c_std_99)
+
+	if(SDLGPUSHADERCROSS_DXC)
+		add_compile_definitions(SDL_GPU_SHADERCROSS_DXC)
+	endif()
 
 	if(SDLGPUSHADERCROSS_SPIRVCROSS_SHARED)
 		target_link_libraries(${target} PRIVATE spirv-cross-c-shared)

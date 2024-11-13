@@ -38,27 +38,12 @@ extern "C" {
 #define SDL_GPU_SHADERCROSS_MINOR_VERSION 0
 #define SDL_GPU_SHADERCROSS_MICRO_VERSION 0
 
-#ifndef SDL_GPU_SHADERCROSS_SPIRVCROSS
-#define SDL_GPU_SHADERCROSS_SPIRVCROSS 1
-#endif /* SDL_GPU_SHADERCROSS_SPIRVCROSS */
-
-#ifndef SDL_GPU_SHADERCROSS_HLSL
-#define SDL_GPU_SHADERCROSS_HLSL 1
-#endif /* SDL_GPU_SHADERCROSS_HLSL */
-
 typedef enum SDL_ShaderCross_ShaderStage
 {
    SDL_SHADERCROSS_SHADERSTAGE_VERTEX,
    SDL_SHADERCROSS_SHADERSTAGE_FRAGMENT,
    SDL_SHADERCROSS_SHADERSTAGE_COMPUTE
 } SDL_ShaderCross_ShaderStage;
-
-typedef enum SDL_ShaderCross_ShaderModel
-{
-    SDL_SHADERCROSS_SHADERMODEL_INVALID,
-    SDL_SHADERCROSS_SHADERMODEL_5_0,
-    SDL_SHADERCROSS_SHADERMODEL_6_0
-} SDL_ShaderCross_ShaderModel;
 
 typedef struct SDL_ShaderCross_ShaderResourceInfo {
     Uint32 num_samplers;         /**< The number of samplers defined in the shader. */
@@ -92,7 +77,6 @@ extern SDL_DECLSPEC bool SDLCALL SDL_ShaderCross_Init(void);
  */
 extern SDL_DECLSPEC void SDLCALL SDL_ShaderCross_Quit(void);
 
-#if SDL_GPU_SHADERCROSS_SPIRVCROSS
 /**
  * Get the supported shader formats that SPIRV cross-compilation can output
  *
@@ -133,8 +117,7 @@ extern SDL_DECLSPEC void * SDLCALL SDL_ShaderCross_TranspileHLSLFromSPIRV(
     const Uint8 *bytecode,
     size_t bytecodeSize,
     const char *entrypoint,
-    SDL_ShaderCross_ShaderStage shaderStage,
-    SDL_ShaderCross_ShaderModel shaderModel);
+    SDL_ShaderCross_ShaderStage shaderStage);
 
 /**
  * Compile DXBC bytecode from SPIRV code.
@@ -212,9 +195,6 @@ extern SDL_DECLSPEC SDL_GPUComputePipeline * SDLCALL SDL_ShaderCross_CompileComp
     const char *entrypoint,
     const SDL_ShaderCross_ComputeResourceInfo *resourceInfo);
 
-#endif /* SDL_GPU_SHADERCROSS_SPIRVCROSS */
-
-#if SDL_GPU_SHADERCROSS_HLSL
 /**
  * Get the supported shader formats that HLSL cross-compilation can output
  *
@@ -223,7 +203,7 @@ extern SDL_DECLSPEC SDL_GPUComputePipeline * SDLCALL SDL_ShaderCross_CompileComp
 extern SDL_DECLSPEC SDL_GPUShaderFormat SDLCALL SDL_ShaderCross_GetHLSLShaderFormats(void);
 
 /**
- * Compile to DXBC bytecode from HLSL Shader Model 6.0 code via a SPIRV-Cross round trip.
+ * Compile to DXBC bytecode from HLSL code via a SPIRV-Cross round trip.
  *
  * You must SDL_free the returned buffer once you are done with it.
  *
@@ -244,7 +224,7 @@ extern SDL_DECLSPEC void * SDLCALL SDL_ShaderCross_CompileDXBCFromHLSL(
     size_t *size);
 
 /**
- * Compile to DXIL bytecode from HLSL Shader Model 6.0 code via a SPIRV-Cross round trip.
+ * Compile to DXIL bytecode from HLSL code via a SPIRV-Cross round trip.
  *
  * You must SDL_free the returned buffer once you are done with it.
  *
@@ -265,7 +245,7 @@ extern SDL_DECLSPEC void * SDLCALL SDL_ShaderCross_CompileDXILFromHLSL(
     size_t *size);
 
 /**
- * Compile to SPIRV bytecode from HLSL Shader Model 6.0 code.
+ * Compile to SPIRV bytecode from HLSL code.
  *
  * You must SDL_free the returned buffer once you are done with it.
  *
@@ -286,7 +266,7 @@ extern SDL_DECLSPEC void * SDLCALL SDL_ShaderCross_CompileSPIRVFromHLSL(
     size_t *size);
 
 /**
- * Compile an SDL GPU shader from HLSL Shader Model 6.0 code.
+ * Compile an SDL GPU shader from HLSL code.
  *
  * \param device the SDL GPU device.
  * \param hlslSource the HLSL source code for the shader.
@@ -307,7 +287,7 @@ extern SDL_DECLSPEC SDL_GPUShader * SDLCALL SDL_ShaderCross_CompileGraphicsShade
     const SDL_ShaderCross_ShaderResourceInfo *resourceInfo);
 
 /**
- * Compile an SDL GPU compute pipeline from HLSL Shader Model 6.0 code.
+ * Compile an SDL GPU compute pipeline from code.
  *
  * \param device the SDL GPU device.
  * \param hlslSource the HLSL source code for the shader.
@@ -324,8 +304,6 @@ extern SDL_DECLSPEC SDL_GPUComputePipeline * SDLCALL SDL_ShaderCross_CompileComp
     const char *entrypoint,
     const char *includeDir,
     const SDL_ShaderCross_ComputeResourceInfo *resourceInfo);
-
-#endif /* SDL_GPU_SHADERCROSS_HLSL */
 
 #ifdef __cplusplus
 }
