@@ -354,7 +354,7 @@ static void *SDL_ShaderCross_INTERNAL_CompileUsingDXC(
 
     #if defined(SDL_PLATFORM_XBOXONE) || defined(SDL_PLATFORM_XBOXSERIES)
     if (SDL_DxcCreateInstance == NULL) {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%s", "DxcCreateInstance function not loaded. Did you forget to call Init?");
+        SDL_SetError("%s", "DxcCreateInstance function not loaded. Did you forget to call Init?");
         return NULL;
     }
     SDL_DxcCreateInstance(
@@ -379,19 +379,19 @@ static void *SDL_ShaderCross_INTERNAL_CompileUsingDXC(
     #endif
 
     if (dxcInstance == NULL) {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%s", "Could not create DXC instance!");
+        SDL_SetError("%s", "Could not create DXC instance!");
         return NULL;
     }
 
     if (utils == NULL) {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%s", "Could not create DXC utils instance!");
+        SDL_SetError("%s", "Could not create DXC utils instance!");
         dxcInstance->lpVtbl->Release(dxcInstance);
         return NULL;
     }
 
     utils->lpVtbl->CreateDefaultIncludeHandler(utils, &includeHandler);
     if (includeHandler == NULL) {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%s", "Failed to create a default include handler!");
+        SDL_SetError("%s", "Failed to create a default include handler!");
         dxcInstance->lpVtbl->Release(dxcInstance);
         utils->lpVtbl->Release(utils);
         return NULL;
@@ -399,7 +399,7 @@ static void *SDL_ShaderCross_INTERNAL_CompileUsingDXC(
 
     entryPointUtf16 = (wchar_t *)SDL_iconv_string("WCHAR_T", "UTF-8", entrypoint, entryPointLength);
     if (entryPointUtf16 == NULL) {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%s", "Failed to convert entrypoint to WCHAR_T!");
+        SDL_SetError("%s", "Failed to convert entrypoint to WCHAR_T!");
         dxcInstance->lpVtbl->Release(dxcInstance);
         utils->lpVtbl->Release(utils);
         return NULL;
@@ -422,7 +422,7 @@ static void *SDL_ShaderCross_INTERNAL_CompileUsingDXC(
         includeDirUtf16 = (wchar_t *)SDL_iconv_string("WCHAR_T", "UTF-8", includeDir, includeDirLength);
 
         if (includeDirUtf16 == NULL) {
-            SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%s", "Failed to convert include dir to WCHAR_T!");
+            SDL_SetError("%s", "Failed to convert include dir to WCHAR_T!");
             dxcInstance->lpVtbl->Release(dxcInstance);
             utils->lpVtbl->Release(utils);
             SDL_free(entryPointUtf16);
@@ -471,29 +471,28 @@ static void *SDL_ShaderCross_INTERNAL_CompileUsingDXC(
     }
 
     if (ret < 0) {
-        SDL_LogError(SDL_LOG_CATEGORY_GPU,
-                     "IDxcShaderCompiler3::Compile failed: %X",
-                     ret);
+        SDL_SetError("IDxcShaderCompiler3::Compile failed: %X", ret);
         dxcInstance->lpVtbl->Release(dxcInstance);
         utils->lpVtbl->Release(utils);
         return NULL;
     } else if (dxcResult == NULL) {
-        SDL_LogError(SDL_LOG_CATEGORY_GPU,
-                     "HLSL compilation failed with no IDxcResult");
+        SDL_SetError("%s", "HLSL compilation failed with no IDxcResult");
         dxcInstance->lpVtbl->Release(dxcInstance);
         utils->lpVtbl->Release(utils);
         return NULL;
     }
 
-    dxcResult->lpVtbl->GetOutput(dxcResult,
-                                 DXC_OUT_ERRORS,
-                                 IID_IDxcBlobUtf8,
-                                 (void **)&errors,
-                                 NULL);
+    dxcResult->lpVtbl->GetOutput(
+        dxcResult,
+        DXC_OUT_ERRORS,
+        IID_IDxcBlobUtf8,
+        (void **)&errors,
+        NULL);
+
     if (errors != NULL && errors->lpVtbl->GetBufferSize(errors) != 0) {
-        SDL_LogError(SDL_LOG_CATEGORY_GPU,
-                     "HLSL compilation failed: %s",
-                     (char *)errors->lpVtbl->GetBufferPointer(errors));
+        SDL_SetError(
+           "HLSL compilation failed: %s",
+            (char *)errors->lpVtbl->GetBufferPointer(errors));
         dxcResult->lpVtbl->Release(dxcResult);
         dxcInstance->lpVtbl->Release(dxcInstance);
         utils->lpVtbl->Release(utils);
@@ -506,7 +505,7 @@ static void *SDL_ShaderCross_INTERNAL_CompileUsingDXC(
                                        (void **)&blob,
                                        NULL);
     if (ret < 0) {
-        SDL_LogError(SDL_LOG_CATEGORY_GPU, "IDxcBlob fetch failed");
+        SDL_SetError("%s", "IDxcBlob fetch failed");
         dxcResult->lpVtbl->Release(dxcResult);
         dxcInstance->lpVtbl->Release(dxcInstance);
         utils->lpVtbl->Release(utils);
@@ -524,7 +523,7 @@ static void *SDL_ShaderCross_INTERNAL_CompileUsingDXC(
 
     return buffer;
 #else
-    SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%s", "Shadercross was not built with DXC support, cannot compile using DXC!");
+    SDL_SetError("%s", "Shadercross was not built with DXC support, cannot compile using DXC!");
     return NULL;
 #endif /* SDL_SHADERCROSS_DXC */
 }
@@ -668,7 +667,7 @@ static ID3DBlob *SDL_ShaderCross_INTERNAL_CompileDXBC(
     HRESULT ret;
 
     if (SDL_D3DCompile == NULL) {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%s", "Could not load D3DCompile!");
+        SDL_SetError("%s", "Could not load D3DCompile!");
         return NULL;
     }
 
@@ -686,8 +685,7 @@ static ID3DBlob *SDL_ShaderCross_INTERNAL_CompileDXBC(
         &errorBlob);
 
     if (ret < 0) {
-        SDL_LogError(
-            SDL_LOG_CATEGORY_GPU,
+        SDL_SetError(
             "HLSL compilation failed: %s",
             (char *)errorBlob->lpVtbl->GetBufferPointer(errorBlob));
         return NULL;
@@ -798,7 +796,7 @@ static void *SDL_ShaderCross_INTERNAL_CreateShaderFromHLSL(
         &bytecodeSize);
 
     if (spirv == NULL) {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%s", "Failed to compile SPIR-V!");
+        SDL_SetError("%s", "Failed to compile SPIR-V!");
         return NULL;
     }
 
@@ -976,14 +974,14 @@ static SPIRVTranspileContext *SDL_ShaderCross_INTERNAL_TranspileFromSPIRV(
         spvc_msl_resource_binding binding;
         for (size_t i = 0; i < num_texture_samplers; i += 1) {
             if (!spvc_compiler_has_decoration(compiler, reflected_resources[i].id, SpvDecorationDescriptorSet) || !spvc_compiler_has_decoration(compiler, reflected_resources[i].id, SpvDecorationBinding)) {
-                SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%s", "Shader resources must have descriptor set and binding index!");
+                SDL_SetError("%s", "Shader resources must have descriptor set and binding index!");
                 spvc_context_destroy(context);
                 return NULL;
             }
 
             unsigned int descriptor_set_index = spvc_compiler_get_decoration(compiler, reflected_resources[i].id, SpvDecorationDescriptorSet);
             if (!(descriptor_set_index == 0 || descriptor_set_index == 2)) {
-                SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%s", "Descriptor set index for graphics texture-sampler must be 0 or 2!");
+                SDL_SetError("%s", "Descriptor set index for graphics texture-sampler must be 0 or 2!");
                 spvc_context_destroy(context);
                 return NULL;
             }
@@ -1017,14 +1015,14 @@ static SPIRVTranspileContext *SDL_ShaderCross_INTERNAL_TranspileFromSPIRV(
 
         for (size_t i = 0; i < num_storage_textures; i += 1) {
             if (!spvc_compiler_has_decoration(compiler, reflected_resources[i].id, SpvDecorationDescriptorSet) || !spvc_compiler_has_decoration(compiler, reflected_resources[i].id, SpvDecorationBinding)) {
-                SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%s", "Shader resources must have descriptor set and binding index!");
+                SDL_SetError("%s", "Shader resources must have descriptor set and binding index!");
                 spvc_context_destroy(context);
                 return NULL;
             }
 
             unsigned int descriptor_set_index = spvc_compiler_get_decoration(compiler, reflected_resources[i].id, SpvDecorationDescriptorSet);
             if (!(descriptor_set_index == 0 || descriptor_set_index == 2)) {
-                SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%s", "Descriptor set index for graphics storage texture must be 0 or 2!");
+                SDL_SetError("%s", "Descriptor set index for graphics storage texture must be 0 or 2!");
                 spvc_context_destroy(context);
                 return NULL;
             }
@@ -1057,14 +1055,14 @@ static SPIRVTranspileContext *SDL_ShaderCross_INTERNAL_TranspileFromSPIRV(
 
         for (size_t i = 0; i < num_storage_buffers; i += 1) {
             if (!spvc_compiler_has_decoration(compiler, reflected_resources[i].id, SpvDecorationDescriptorSet) || !spvc_compiler_has_decoration(compiler, reflected_resources[i].id, SpvDecorationBinding)) {
-                SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%s", "Shader resources must have descriptor set and binding index!");
+                SDL_SetError(SDL_LOG_CATEGORY_APPLICATION, "%s", "Shader resources must have descriptor set and binding index!");
                 spvc_context_destroy(context);
                 return NULL;
             }
 
             unsigned int descriptor_set_index = spvc_compiler_get_decoration(compiler, reflected_resources[i].id, SpvDecorationDescriptorSet);
             if (!(descriptor_set_index == 0 || descriptor_set_index == 2)) {
-                SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%s", "Descriptor set index for graphics storage buffer must be 0 or 2!");
+                SDL_SetError(SDL_LOG_CATEGORY_APPLICATION, "%s", "Descriptor set index for graphics storage buffer must be 0 or 2!");
                 spvc_context_destroy(context);
                 return NULL;
             }
@@ -1097,14 +1095,14 @@ static SPIRVTranspileContext *SDL_ShaderCross_INTERNAL_TranspileFromSPIRV(
 
         for (size_t i = 0; i< num_uniform_buffers; i += 1) {
             if (!spvc_compiler_has_decoration(compiler, reflected_resources[i].id, SpvDecorationDescriptorSet) || !spvc_compiler_has_decoration(compiler, reflected_resources[i].id, SpvDecorationBinding)) {
-                SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%s", "Shader resources must have descriptor set and binding index!");
+                SDL_SetError("%s", "Shader resources must have descriptor set and binding index!");
                 spvc_context_destroy(context);
                 return NULL;
             }
 
             unsigned int descriptor_set_index = spvc_compiler_get_decoration(compiler, reflected_resources[i].id, SpvDecorationDescriptorSet);
             if (!(descriptor_set_index == 1 || descriptor_set_index == 3)) {
-                SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%s", "Descriptor set index for graphics uniform buffer must be 1 or 3!");
+                SDL_SetError("%s", "Descriptor set index for graphics uniform buffer must be 1 or 3!");
                 spvc_context_destroy(context);
                 return NULL;
             }
@@ -1171,14 +1169,14 @@ static SPIRVTranspileContext *SDL_ShaderCross_INTERNAL_TranspileFromSPIRV(
 
         for (size_t i = 0; i < num_texture_samplers; i += 1) {
             if (!spvc_compiler_has_decoration(compiler, reflected_resources[i].id, SpvDecorationDescriptorSet) || !spvc_compiler_has_decoration(compiler, reflected_resources[i].id, SpvDecorationBinding)) {
-                SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%s", "Shader resources must have descriptor set and binding index!");
+                SDL_SetError("%s", "Shader resources must have descriptor set and binding index!");
                 spvc_context_destroy(context);
                 return NULL;
             }
 
             unsigned int descriptor_set_index = spvc_compiler_get_decoration(compiler, reflected_resources[i].id, SpvDecorationDescriptorSet);
             if (descriptor_set_index != 0) {
-                SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%s", "Descriptor set index for compute texture-sampler must be 0!");
+                SDL_SetError("%s", "Descriptor set index for compute texture-sampler must be 0!");
                 spvc_context_destroy(context);
                 return NULL;
             }
@@ -1214,14 +1212,14 @@ static SPIRVTranspileContext *SDL_ShaderCross_INTERNAL_TranspileFromSPIRV(
         // Readonly storage textures
         for (size_t i = 0; i < num_storage_textures; i += 1) {
             if (!spvc_compiler_has_decoration(compiler, reflected_resources[i].id, SpvDecorationDescriptorSet) || !spvc_compiler_has_decoration(compiler, reflected_resources[i].id, SpvDecorationBinding)) {
-                SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%s", "Shader resources must have descriptor set and binding index!");
+                SDL_SetError("%s", "Shader resources must have descriptor set and binding index!");
                 spvc_context_destroy(context);
                 return NULL;
             }
 
             unsigned int descriptor_set_index = spvc_compiler_get_decoration(compiler, reflected_resources[i].id, SpvDecorationDescriptorSet);
             if (!(descriptor_set_index == 0 || descriptor_set_index == 1)) {
-                SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%s", "Descriptor set index for compute storage texture must be 0 or 1!");
+                SDL_SetError("%s", "Descriptor set index for compute storage texture must be 0 or 1!");
                 spvc_context_destroy(context);
                 return NULL;
             }
@@ -1283,14 +1281,14 @@ static SPIRVTranspileContext *SDL_ShaderCross_INTERNAL_TranspileFromSPIRV(
         // Readonly storage buffers
         for (size_t i = 0; i < num_storage_buffers; i += 1) {
             if (!spvc_compiler_has_decoration(compiler, reflected_resources[i].id, SpvDecorationDescriptorSet) || !spvc_compiler_has_decoration(compiler, reflected_resources[i].id, SpvDecorationBinding)) {
-                SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%s", "Shader resources must have descriptor set and binding index!");
+                SDL_SetError("%s", "Shader resources must have descriptor set and binding index!");
                 spvc_context_destroy(context);
                 return NULL;
             }
 
             unsigned int descriptor_set_index = spvc_compiler_get_decoration(compiler, reflected_resources[i].id, SpvDecorationDescriptorSet);
             if (!(descriptor_set_index == 0 || descriptor_set_index == 1)) {
-                SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%s", "Descriptor set index for compute storage buffer must be 0 or 1!");
+                SDL_SetError("%s", "Descriptor set index for compute storage buffer must be 0 or 1!");
                 spvc_context_destroy(context);
                 return NULL;
             }
@@ -1351,14 +1349,14 @@ static SPIRVTranspileContext *SDL_ShaderCross_INTERNAL_TranspileFromSPIRV(
 
         for (size_t i = 0; i < num_uniform_buffers; i += 1) {
             if (!spvc_compiler_has_decoration(compiler, reflected_resources[i].id, SpvDecorationDescriptorSet) || !spvc_compiler_has_decoration(compiler, reflected_resources[i].id, SpvDecorationBinding)) {
-                SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%s", "Shader resources must have descriptor set and binding index!");
+                SDL_SetError("%s", "Shader resources must have descriptor set and binding index!");
                 spvc_context_destroy(context);
                 return NULL;
             }
 
             unsigned int descriptor_set_index = spvc_compiler_get_decoration(compiler, reflected_resources[i].id, SpvDecorationDescriptorSet);
             if (descriptor_set_index != 2) {
-                SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%s", "Descriptor set index for compute uniform buffer must be 2!");
+                SDL_SetError("%s", "Descriptor set index for compute uniform buffer must be 2!");
                 spvc_context_destroy(context);
                 return NULL;
             }
@@ -1620,7 +1618,7 @@ static bool SDL_ShaderCross_INTERNAL_ReflectComputeSPIRV(
 
     for (size_t i = 0; i < num_storage_textures; i += 1) {
         if (!spvc_compiler_has_decoration(compiler, reflected_resources[i].id, SpvDecorationDescriptorSet) || !spvc_compiler_has_decoration(compiler, reflected_resources[i].id, SpvDecorationBinding)) {
-            SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%s", "Shader resources must have descriptor set and binding index!");
+            SDL_SetError("%s", "Shader resources must have descriptor set and binding index!");
             spvc_context_destroy(context);
             return false;
         }
@@ -1632,7 +1630,7 @@ static bool SDL_ShaderCross_INTERNAL_ReflectComputeSPIRV(
         } else if (descriptor_set_index == 1) {
             num_readwrite_storage_textures += 1;
         } else {
-            SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%s", "Descriptor set index for compute storage texture must be 0 or 1!");
+            SDL_SetError("%s", "Descriptor set index for compute storage texture must be 0 or 1!");
             spvc_context_destroy(context);
             return false;
         }
@@ -1653,14 +1651,14 @@ static bool SDL_ShaderCross_INTERNAL_ReflectComputeSPIRV(
     // Readonly storage buffers
     for (size_t i = 0; i < num_storage_buffers; i += 1) {
         if (!spvc_compiler_has_decoration(compiler, reflected_resources[i].id, SpvDecorationDescriptorSet) || !spvc_compiler_has_decoration(compiler, reflected_resources[i].id, SpvDecorationBinding)) {
-            SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%s", "Shader resources must have descriptor set and binding index!");
+            SDL_SetError("%s", "Shader resources must have descriptor set and binding index!");
             spvc_context_destroy(context);
             return false;
         }
 
         unsigned int descriptor_set_index = spvc_compiler_get_decoration(compiler, reflected_resources[i].id, SpvDecorationDescriptorSet);
         if (!(descriptor_set_index == 0 || descriptor_set_index == 1)) {
-            SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%s", "Descriptor set index for compute storage buffer must be 0 or 1!");
+            SDL_SetError("%s", "Descriptor set index for compute storage buffer must be 0 or 1!");
             spvc_context_destroy(context);
             return false;
         }
@@ -1670,7 +1668,7 @@ static bool SDL_ShaderCross_INTERNAL_ReflectComputeSPIRV(
         } else if (descriptor_set_index == 1) {
             num_readwrite_storage_buffers += 1;
         } else {
-            SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%s", "Descriptor set index for compute storage buffer must be 0 or 1!");
+            SDL_SetError("%s", "Descriptor set index for compute storage buffer must be 0 or 1!");
             spvc_context_destroy(context);
             return false;
         }
@@ -1888,7 +1886,7 @@ void *SDL_ShaderCross_CompileDXILFromSPIRV(
     size_t *size)
 {
 #ifndef SDL_SHADERCROSS_DXC
-    SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%s", "Shadercross was not compiled with DXC support, cannot compile to SPIR-V!");
+    SDL_SetError("%s", "Shadercross was not compiled with DXC support, cannot compile to SPIR-V!");
     return NULL;
 #endif
 
