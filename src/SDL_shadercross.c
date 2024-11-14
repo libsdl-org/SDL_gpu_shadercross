@@ -1055,14 +1055,14 @@ static SPIRVTranspileContext *SDL_ShaderCross_INTERNAL_TranspileFromSPIRV(
 
         for (size_t i = 0; i < num_storage_buffers; i += 1) {
             if (!spvc_compiler_has_decoration(compiler, reflected_resources[i].id, SpvDecorationDescriptorSet) || !spvc_compiler_has_decoration(compiler, reflected_resources[i].id, SpvDecorationBinding)) {
-                SDL_SetError(SDL_LOG_CATEGORY_APPLICATION, "%s", "Shader resources must have descriptor set and binding index!");
+                SDL_SetError("%s", "Shader resources must have descriptor set and binding index!");
                 spvc_context_destroy(context);
                 return NULL;
             }
 
             unsigned int descriptor_set_index = spvc_compiler_get_decoration(compiler, reflected_resources[i].id, SpvDecorationDescriptorSet);
             if (!(descriptor_set_index == 0 || descriptor_set_index == 2)) {
-                SDL_SetError(SDL_LOG_CATEGORY_APPLICATION, "%s", "Descriptor set index for graphics storage buffer must be 0 or 2!");
+                SDL_SetError("%s", "Descriptor set index for graphics storage buffer must be 0 or 2!");
                 spvc_context_destroy(context);
                 return NULL;
             }

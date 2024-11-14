@@ -383,7 +383,7 @@ int main(int argc, char *argv[])
                     shaderStage,
                     &bytecodeSize);
                 if (spirv == NULL) {
-                    SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%s", "Failed to transpile MSL from HLSL: %s", SDL_GetError());
+                    SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to transpile MSL from HLSL: %s", SDL_GetError());
                     result = 1;
                 } else {
                     char *buffer = SDL_ShaderCross_TranspileMSLFromSPIRV(
