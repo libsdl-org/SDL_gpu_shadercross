@@ -471,3 +471,11 @@ if(SDLSHADERCROSS_INSTALL_RUNTIME)
 		# FIXME: Apple probably needs to do something similar as Linux, but using otool
 	endif()
 endif()
+
+if(SDLSHADERCROSS_SHARED)
+	export(TARGETS SDL3_shadercross-shared NAMESPACE "SDL3_shadercross::" FILE "SDL3_shadercross-shared-targets.cmake")
+endif()
+
+if(SDLSHADERCROSS_STATIC)
+	export(TARGETS SDL3_shadercross-static NAMESPACE "SDL3_shadercross::" FILE "SDL3_shadercross-static-targets.cmake")
+endif()
