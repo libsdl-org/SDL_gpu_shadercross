@@ -2055,7 +2055,9 @@ SDL_GPUShaderFormat SDL_ShaderCross_GetSPIRVShaderFormats(void)
     SDL_GPUShaderFormat supportedFormats = SDL_GPU_SHADERFORMAT_SPIRV | SDL_GPU_SHADERFORMAT_MSL;
 
     /* SPIRV-Cross + DXC allows us to cross-compile to HLSL, then compile to DXIL */
+#ifdef SDL_SHADERCROSS_DXC
     supportedFormats |= SDL_GPU_SHADERFORMAT_DXIL;
+#endif
 
     /* SPIRV-Cross + FXC allows us to cross-compile to HLSL, then compile to DXBC */
     if (d3dcompiler_dll != NULL) {
@@ -2069,9 +2071,9 @@ SDL_GPUShaderFormat SDL_ShaderCross_GetHLSLShaderFormats(void)
 {
     SDL_GPUShaderFormat supportedFormats = 0;
 
-    /* DXC allows compilation from HLSL to DXIL and SPIRV */
+    /* DXC allows compilation from HLSL to SPIRV */
 #ifdef SDL_SHADERCROSS_DXC
-    supportedFormats |= SDL_GPU_SHADERFORMAT_DXIL | SDL_GPU_SHADERFORMAT_DXBC;
+    supportedFormats |= SDL_ShaderCross_GetSPIRVShaderFormats();
 #endif
 
     /* FXC allows compilation of HLSL to DXBC */
