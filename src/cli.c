@@ -256,6 +256,7 @@ int main(int argc, char *argv[])
     }
 
     size_t bytecodeSize;
+    int result = 0;
 
     if (spirvSource) {
         switch (destinationFormat) {
@@ -266,8 +267,13 @@ int main(int argc, char *argv[])
                     entrypointName,
                     shaderStage,
                     &bytecodeSize);
-                SDL_WriteIO(outputIO, buffer, bytecodeSize);
-                SDL_free(buffer);
+                if (buffer == NULL) {
+                    SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to compile DXBC from SPIR-V: %s", SDL_GetError());
+                    result = 1;
+                } else {
+                    SDL_WriteIO(outputIO, buffer, bytecodeSize);
+                    SDL_free(buffer);
+                }
                 break;
             }
 
@@ -278,8 +284,13 @@ int main(int argc, char *argv[])
                     entrypointName,
                     shaderStage,
                     &bytecodeSize);
-                SDL_WriteIO(outputIO, buffer, bytecodeSize);
-                SDL_free(buffer);
+                if (buffer == NULL) {
+                    SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to compile DXIL from SPIR-V: %s", SDL_GetError());
+                    result = 1;
+                } else {
+                    SDL_WriteIO(outputIO, buffer, bytecodeSize);
+                    SDL_free(buffer);
+                }
                 break;
             }
 
@@ -289,8 +300,13 @@ int main(int argc, char *argv[])
                     fileSize,
                     entrypointName,
                     shaderStage);
-                SDL_IOprintf(outputIO, "%s", buffer);
-                SDL_free(buffer);
+                if (buffer == NULL) {
+                    SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to transpile MSL from SPIR-V: %s", SDL_GetError());
+                    result = 1;
+                } else {
+                    SDL_IOprintf(outputIO, "%s", buffer);
+                    SDL_free(buffer);
+                }
                 break;
             }
 
@@ -300,24 +316,26 @@ int main(int argc, char *argv[])
                     fileSize,
                     entrypointName,
                     shaderStage);
-
                 if (buffer == NULL) {
-                    SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%s", "Failed to transpile HLSL from SPIRV!");
-                    return 1;
+                    SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to transpile HLSL from SPIRV: %s", SDL_GetError());
+                    result = 1;
+                } else {
+                    SDL_IOprintf(outputIO, "%s", buffer);
+                    SDL_free(buffer);
                 }
-                SDL_IOprintf(outputIO, "%s", buffer);
-                SDL_free(buffer);
                 break;
             }
 
             case SHADERFORMAT_SPIRV: {
                 SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Input and output are both SPIRV. Did you mean to do that?");
-                return 1;
+                result = 1;
+                break;
             }
 
             case SHADERFORMAT_INVALID: {
                 SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Destination format not provided!");
-                return 1;
+                result = 1;
+                break;
             }
         }
     } else {
@@ -329,8 +347,13 @@ int main(int argc, char *argv[])
                     includeDir,
                     shaderStage,
                     &bytecodeSize);
-                SDL_WriteIO(outputIO, buffer, bytecodeSize);
-                SDL_free(buffer);
+                if (buffer == NULL) {
+                    SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to compile DXBC from HLSL: %s", SDL_GetError());
+                    result = 1;
+                } else {
+                    SDL_WriteIO(outputIO, buffer, bytecodeSize);
+                    SDL_free(buffer);
+                }
                 break;
             }
 
@@ -341,11 +364,17 @@ int main(int argc, char *argv[])
                     includeDir,
                     shaderStage,
                     &bytecodeSize);
-                SDL_WriteIO(outputIO, buffer, bytecodeSize);
-                SDL_free(buffer);
+                if (buffer == NULL) {
+                    SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to compile DXIL from HLSL: %s", SDL_GetError());
+                    result = 1;
+                } else {
+                    SDL_WriteIO(outputIO, buffer, bytecodeSize);
+                    SDL_free(buffer);
+                }
                 break;
             }
 
+            // TODO: Should we have TranspileMSLFromHLSL?
             case SHADERFORMAT_MSL: {
                 void *spirv = SDL_ShaderCross_CompileSPIRVFromHLSL(
                     fileData,
@@ -354,17 +383,23 @@ int main(int argc, char *argv[])
                     shaderStage,
                     &bytecodeSize);
                 if (spirv == NULL) {
-                    SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%s", "Failed to compile SPIR-V!");
-                    return 1;
+                    SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to transpile MSL from HLSL: %s", SDL_GetError());
+                    result = 1;
+                } else {
+                    char *buffer = SDL_ShaderCross_TranspileMSLFromSPIRV(
+                        spirv,
+                        bytecodeSize,
+                        entrypointName,
+                        shaderStage);
+                    if (buffer == NULL) {
+                        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to transpile MSL from HLSL: %s", SDL_GetError());
+                        result = 1;
+                    } else {
+                        SDL_IOprintf(outputIO, "%s", buffer);
+                        SDL_free(spirv);
+                        SDL_free(buffer);
+                    }
                 }
-                char *buffer = SDL_ShaderCross_TranspileMSLFromSPIRV(
-                    spirv,
-                    bytecodeSize,
-                    entrypointName,
-                    shaderStage);
-                SDL_IOprintf(outputIO, "%s", buffer);
-                SDL_free(spirv);
-                SDL_free(buffer);
                 break;
             }
 
@@ -375,8 +410,13 @@ int main(int argc, char *argv[])
                     includeDir,
                     shaderStage,
                     &bytecodeSize);
-                SDL_WriteIO(outputIO, buffer, bytecodeSize);
-                SDL_free(buffer);
+                if (buffer == NULL) {
+                    SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to compile SPIR-V From HLSL: %s", SDL_GetError());
+                    result = 1;
+                } else {
+                    SDL_WriteIO(outputIO, buffer, bytecodeSize);
+                    SDL_free(buffer);
+                }
                 break;
             }
 
@@ -390,7 +430,8 @@ int main(int argc, char *argv[])
 
                 if (spirv == NULL) {
                     SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%s", "Failed to compile HLSL to SPIRV!");
-                    return 1;
+                    result = 1;
+                    break;
                 }
 
                 char *buffer = SDL_ShaderCross_TranspileHLSLFromSPIRV(
@@ -401,7 +442,8 @@ int main(int argc, char *argv[])
 
                 if (buffer == NULL) {
                     SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%s", "Failed to transpile HLSL from SPIRV!");
-                    return 1;
+                    result = 1;
+                    break;
                 }
 
                 SDL_IOprintf(outputIO, "%s", buffer);
@@ -412,7 +454,8 @@ int main(int argc, char *argv[])
 
             case SHADERFORMAT_INVALID: {
                 SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Destination format not provided!");
-                return 1;
+                result = 1;
+                break;
             }
         }
     }
@@ -420,5 +463,5 @@ int main(int argc, char *argv[])
     SDL_CloseIO(outputIO);
     SDL_free(fileData);
     SDL_ShaderCross_Quit();
-    return 0;
+    return result;
 }
