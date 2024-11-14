@@ -455,6 +455,7 @@ int main(int argc, char *argv[])
             case SHADERFORMAT_INVALID: {
                 SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Destination format not provided!");
                 result = 1;
+                break;
             }
         }
     }
