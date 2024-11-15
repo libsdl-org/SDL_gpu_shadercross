@@ -685,9 +685,13 @@ static ID3DBlob *SDL_ShaderCross_INTERNAL_CompileDXBC(
         &errorBlob);
 
     if (ret < 0) {
-        SDL_SetError(
-            "HLSL compilation failed: %s",
-            (char *)errorBlob->lpVtbl->GetBufferPointer(errorBlob));
+        if(errorBlob != NULL) {
+            SDL_SetError(
+                "HLSL compilation failed: %s",
+                (char *)errorBlob->lpVtbl->GetBufferPointer(errorBlob));
+        } else {
+            SDL_SetError("HLSL compilation failed for an unknown reason.");
+        }
         return NULL;
     }
 
