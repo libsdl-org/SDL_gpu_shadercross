@@ -685,9 +685,13 @@ static ID3DBlob *SDL_ShaderCross_INTERNAL_CompileDXBC(
         &errorBlob);
 
     if (ret < 0) {
-        SDL_SetError(
-            "HLSL compilation failed: %s",
-            (char *)errorBlob->lpVtbl->GetBufferPointer(errorBlob));
+        if (errorBlob != NULL) {
+            SDL_SetError(
+                "HLSL compilation failed: %s",
+                (char *)errorBlob->lpVtbl->GetBufferPointer(errorBlob));
+        } else {
+            SDL_SetError("HLSL compilation failed for an unknown reason.");
+        }
         return NULL;
     }
 
@@ -1734,6 +1738,10 @@ static void *SDL_ShaderCross_INTERNAL_CompileFromSPIRV(
         bytecodeSize,
         entrypoint);
 
+    if (transpileContext == NULL) {
+        return NULL;
+    }
+
     void *shaderObject = NULL;
 
     if (shaderStage == SDL_SHADERCROSS_SHADERSTAGE_COMPUTE) {
@@ -1820,6 +1828,10 @@ void *SDL_ShaderCross_TranspileMSLFromSPIRV(
         entrypoint
     );
 
+    if (context == NULL) {
+        return NULL;
+    }
+
     size_t length = SDL_strlen(context->translated_source) + 1;
     char *result = SDL_malloc(length);
     SDL_strlcpy(result, context->translated_source, length);
@@ -1843,6 +1855,10 @@ void *SDL_ShaderCross_TranspileHLSLFromSPIRV(
         entrypoint
     );
 
+    if (context == NULL) {
+        return NULL;
+    }
+
     size_t length = SDL_strlen(context->translated_source) + 1;
     char *result = SDL_malloc(length);
     SDL_strlcpy(result, context->translated_source, length);
@@ -1865,6 +1881,10 @@ void *SDL_ShaderCross_CompileDXBCFromSPIRV(
         bytecode,
         bytecodeSize,
         entrypoint);
+
+    if (context == NULL) {
+        return NULL;
+    }
 
     void *result = SDL_ShaderCross_INTERNAL_CompileDXBCFromHLSL(
         context->translated_source,
@@ -1897,6 +1917,10 @@ void *SDL_ShaderCross_CompileDXILFromSPIRV(
         bytecode,
         bytecodeSize,
         entrypoint);
+
+    if (context == NULL) {
+        return NULL;
+    }
 
     void *result = SDL_ShaderCross_CompileDXILFromHLSL(
         context->translated_source,
