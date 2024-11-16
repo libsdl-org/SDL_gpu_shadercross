@@ -685,7 +685,7 @@ static ID3DBlob *SDL_ShaderCross_INTERNAL_CompileDXBC(
         &errorBlob);
 
     if (ret < 0) {
-        if(errorBlob != NULL) {
+        if (errorBlob != NULL) {
             SDL_SetError(
                 "HLSL compilation failed: %s",
                 (char *)errorBlob->lpVtbl->GetBufferPointer(errorBlob));
@@ -1738,7 +1738,9 @@ static void *SDL_ShaderCross_INTERNAL_CompileFromSPIRV(
         bytecodeSize,
         entrypoint);
 
-    if(transpileContext == NULL) return NULL;
+    if (transpileContext == NULL) {
+        return NULL;
+    }
 
     void *shaderObject = NULL;
 
@@ -1826,7 +1828,9 @@ void *SDL_ShaderCross_TranspileMSLFromSPIRV(
         entrypoint
     );
 
-    if(context == NULL) return NULL;
+    if (context == NULL) {
+        return NULL;
+    }
 
     size_t length = SDL_strlen(context->translated_source) + 1;
     char *result = SDL_malloc(length);
@@ -1851,7 +1855,9 @@ void *SDL_ShaderCross_TranspileHLSLFromSPIRV(
         entrypoint
     );
 
-    if(context == NULL) return NULL;
+    if (context == NULL) {
+        return NULL;
+    }
 
     size_t length = SDL_strlen(context->translated_source) + 1;
     char *result = SDL_malloc(length);
@@ -1876,7 +1882,9 @@ void *SDL_ShaderCross_CompileDXBCFromSPIRV(
         bytecodeSize,
         entrypoint);
 
-    if(context == NULL) return NULL;
+    if (context == NULL) {
+        return NULL;
+    }
 
     void *result = SDL_ShaderCross_INTERNAL_CompileDXBCFromHLSL(
         context->translated_source,
@@ -1910,7 +1918,9 @@ void *SDL_ShaderCross_CompileDXILFromSPIRV(
         bytecodeSize,
         entrypoint);
 
-    if(context == NULL) return NULL;
+    if (context == NULL) {
+        return NULL;
+    }
 
     void *result = SDL_ShaderCross_CompileDXILFromHLSL(
         context->translated_source,
