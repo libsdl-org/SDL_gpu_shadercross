@@ -70,7 +70,7 @@ endif()
 set(spirv_static_targets spirv-cross-c spirv-cross-glsl spirv-cross-hlsl spirv-cross-msl spirv-cross-cpp spirv-cross-reflect spirv-cross-core)
 
 set(pc_requires )
-set(install_extra_targets )
+set(vendored_targets )
 if(SDLSHADERCROSS_VENDORED)
 	set(SPIRV_CROSS_SKIP_INSTALL ON)
 	set(SPIRV_CROSS_CLI OFF)
@@ -89,14 +89,14 @@ if(SDLSHADERCROSS_VENDORED)
 	add_subdirectory(external/SPIRV-Cross EXCLUDE_FROM_ALL)
 
 	if(SDLSHADERCROSS_SPIRVCROSS_SHARED)
-		list(APPEND install_extra_targets spirv-cross-c-shared)
+		list(APPEND vendored_targets spirv-cross-c-shared)
 		list(APPEND pc_requires "spirv-cross-c-shared")
 	else()
 		enable_language(CXX)
 		if(SDLSHADERCROSS_STATIC)
 			foreach(extra IN LISTS spirv_static_targets)
 				if(TARGET ${extra})
-					list(APPEND install_extra_targets ${extra})
+					list(APPEND vendored_targets ${extra})
 					list(APPEND pc_requires "${extra}")
 				endif()
 			endforeach()
@@ -119,8 +119,10 @@ if(SDLSHADERCROSS_VENDORED)
 	add_subdirectory(external/DirectXShaderCompiler EXCLUDE_FROM_ALL)
 	add_library(DirectXShaderCompiler::dxcompiler ALIAS dxcompiler)
 	add_library(DirectXShaderCompiler::dxil ALIAS dxildll)
-	list(APPEND install_extra_targets dxcompiler dxildll)
+	list(APPEND vendored_targets dxcompiler dxildll)
 	add_dependencies(dxcompiler dxildll)
+
+	export(TARGETS ${vendored_targets} NAMESPACE "SDL3_shadercross::" FILE "SDL3_shadercross-vendored-targets.cmake")
 else()
 	if(SDLSHADERCROSS_SPIRVCROSS_SHARED)
 		if(NOT TARGET spirv_cross_c_shared)
@@ -181,6 +183,7 @@ if(SDLSHADERCROSS_SHARED)
 	target_link_libraries(SDL3_shadercross-shared PRIVATE
 		SDL3::SDL3-shared
 	)
+	export(TARGETS SDL3_shadercross-shared NAMESPACE "SDL3_shadercross::" FILE "SDL3_shadercross-shared-targets.cmake")
 endif()
 
 
@@ -204,7 +207,15 @@ if(SDLSHADERCROSS_STATIC)
 	target_link_libraries(SDL3_shadercross-static PUBLIC
 		SDL3::Headers
 	)
+	export(TARGETS SDL3_shadercross-static NAMESPACE "SDL3_shadercross::" FILE "SDL3_shadercross-static-targets.cmake")
 endif()
+
+# Copy dependencies of SDL3_shadercross-config.cmake to build directory.
+# This allows usage of the package without installation.
+file(COPY
+	"${CMAKE_CURRENT_SOURCE_DIR}/cmake/sdlcpu.cmake"
+	"${CMAKE_CURRENT_SOURCE_DIR}/cmake/FindDirectXShaderCompiler.cmake"
+	DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
 
 foreach(target IN LISTS SDL3_shadercross_targets)
 	sdl_add_warning_options(${target} WARNING_AS_ERROR ${SDLSHADERCROSS_WERROR})
@@ -288,8 +299,8 @@ if(SDLSHADERCROSS_INSTALL)
 			COMPONENT devel
 		)
 	endif()
-	if(install_extra_targets)
-		install(TARGETS ${install_extra_targets} EXPORT SDL3_shadercross-vendored
+	if(vendored_targets)
+		install(TARGETS ${vendored_targets} EXPORT SDL3_shadercross-vendored
 			ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}" COMPONENT devel
 			RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}" COMPONENT library
 			LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}" COMPONENT library
