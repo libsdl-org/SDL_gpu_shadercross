@@ -224,7 +224,7 @@ extern SDL_DECLSPEC void * SDLCALL SDL_ShaderCross_CompileDXBCFromHLSL(
     const char *hlslSource,
     const char *entrypoint,
     const char *includeDir,
-    const char **defines,
+    char **defines,
     Uint32 numDefines,
     SDL_ShaderCross_ShaderStage shaderStage,
     size_t *size);
@@ -249,7 +249,7 @@ extern SDL_DECLSPEC void * SDLCALL SDL_ShaderCross_CompileDXILFromHLSL(
     const char *hlslSource,
     const char *entrypoint,
     const char *includeDir,
-    const char **defines,
+    char **defines,
     Uint32 numDefines,
     SDL_ShaderCross_ShaderStage shaderStage,
     size_t *size);
@@ -274,7 +274,7 @@ extern SDL_DECLSPEC void * SDLCALL SDL_ShaderCross_CompileSPIRVFromHLSL(
     const char *hlslSource,
     const char *entrypoint,
     const char *includeDir,
-    const char **defines,
+    char **defines,
     Uint32 numDefines,
     SDL_ShaderCross_ShaderStage shaderStage,
     size_t *size);
@@ -299,7 +299,7 @@ extern SDL_DECLSPEC SDL_GPUShader * SDLCALL SDL_ShaderCross_CompileGraphicsShade
     const char *hlslSource,
     const char *entrypoint,
     const char *includeDir,
-    const char **defines,
+    char **defines,
     Uint32 numDefines,
     SDL_GPUShaderStage graphicsShaderStage,
     SDL_ShaderCross_GraphicsShaderInfo *info);
@@ -323,7 +323,7 @@ extern SDL_DECLSPEC SDL_GPUComputePipeline * SDLCALL SDL_ShaderCross_CompileComp
     const char *hlslSource,
     const char *entrypoint,
     const char *includeDir,
-    const char **defines,
+    char **defines,
     Uint32 numDefines,
     SDL_ShaderCross_ComputePipelineInfo *info);
 

@@ -332,7 +332,7 @@ static void *SDL_ShaderCross_INTERNAL_CompileUsingDXC(
     const char *hlslSource,
     const char *entrypoint,
     const char *includeDir,
-    const char **defines,
+    char **defines,
     Uint32 numDefines,
     SDL_ShaderCross_ShaderStage shaderStage,
     bool spirv,
@@ -544,7 +544,7 @@ void *SDL_ShaderCross_CompileDXILFromHLSL(
     const char *hlslSource,
     const char *entrypoint,
     const char *includeDir,
-    const char **defines,
+    char **defines,
     Uint32 numDefines,
     SDL_ShaderCross_ShaderStage shaderStage,
     size_t *size)
@@ -590,7 +590,7 @@ void *SDL_ShaderCross_CompileSPIRVFromHLSL(
     const char *hlslSource,
     const char *entrypoint,
     const char *includeDir,
-    const char **defines,
+    char **defines,
     Uint32 numDefines,
     SDL_ShaderCross_ShaderStage shaderStage,
     size_t *size)
@@ -724,7 +724,7 @@ void *SDL_ShaderCross_INTERNAL_CompileDXBCFromHLSL(
     const char *hlslSource,
     const char *entrypoint,
     const char *includeDir,
-    const char **defines,
+    char **defines,
     Uint32 numDefines,
     SDL_ShaderCross_ShaderStage shaderStage,
     bool enableRoundtrip,
@@ -796,7 +796,7 @@ void *SDL_ShaderCross_CompileDXBCFromHLSL(
     const char *hlslSource,
     const char *entrypoint,
     const char *includeDir,
-    const char **defines,
+    char **defines,
     Uint32 numDefines,
     SDL_ShaderCross_ShaderStage shaderStage,
     size_t *size) // filled in with number of bytes of returned buffer
@@ -817,7 +817,7 @@ static void *SDL_ShaderCross_INTERNAL_CreateShaderFromHLSL(
     const char *hlslSource,
     const char *entrypoint,
     const char *includeDir,
-    const char **defines,
+    char **defines,
     Uint32 numDefines,
     SDL_ShaderCross_ShaderStage shaderStage,
     SDL_ShaderCross_GraphicsShaderInfo *info)
@@ -865,7 +865,7 @@ SDL_GPUShader *SDL_ShaderCross_CompileGraphicsShaderFromHLSL(
     const char *hlslSource,
     const char *entrypoint,
     const char *includeDir,
-    const char **defines,
+    char **defines,
     Uint32 numDefines,
     SDL_GPUShaderStage graphicsShaderStage,
     SDL_ShaderCross_GraphicsShaderInfo *info)
@@ -886,7 +886,7 @@ SDL_GPUComputePipeline *SDL_ShaderCross_CompileComputePipelineFromHLSL(
     const char *hlslSource,
     const char *entrypoint,
     const char *includeDir,
-    const char **defines,
+    char **defines,
     Uint32 numDefines,
     SDL_ShaderCross_ComputePipelineInfo *info)
 {
