@@ -1459,12 +1459,12 @@ static SPIRVTranspileContext *SDL_ShaderCross_INTERNAL_TranspileFromSPIRV(
     return transpileContext;
 }
 
-// Acquire CreateInfo metadata from SPIRV bytecode.
+// Acquire metadata from SPIRV bytecode.
 // TODO: validate descriptor sets
-static bool SDL_ShaderCross_INTERNAL_ReflectGraphicsSPIRV(
+bool SDL_ShaderCross_ReflectGraphicsSPIRV(
     const Uint8 *code,
     size_t codeSize,
-    SDL_GPUShaderCreateInfo *createInfo // filled in with reflected data
+    SDL_ShaderCross_GraphicsShaderInfo *info // filled in with reflected data
 ) {
     spvc_result result;
     spvc_context context = NULL;
@@ -1572,17 +1572,17 @@ static bool SDL_ShaderCross_INTERNAL_ReflectGraphicsSPIRV(
 
     spvc_context_destroy(context);
 
-    createInfo->num_samplers = num_texture_samplers;
-    createInfo->num_storage_textures = num_storage_textures;
-    createInfo->num_storage_buffers = num_storage_buffers;
-    createInfo->num_uniform_buffers = num_uniform_buffers;
+    info->numSamplers = num_texture_samplers;
+    info->numStorageTextures = num_storage_textures;
+    info->numStorageBuffers = num_storage_buffers;
+    info->numUniformBuffers = num_uniform_buffers;
     return true;
 }
 
-static bool SDL_ShaderCross_INTERNAL_ReflectComputeSPIRV(
-    const Uint8 *code,
-    size_t codeSize,
-    SDL_GPUComputePipelineCreateInfo *createInfo // filled in with reflected data
+bool SDL_ShaderCross_ReflectComputeSPIRV(
+    const Uint8 *bytecode,
+    size_t bytecodeSize,
+    SDL_ShaderCross_ComputePipelineInfo *info // filled in with reflected data
 ) {
     spvc_result result;
     spvc_context context = NULL;
@@ -1606,7 +1606,7 @@ static bool SDL_ShaderCross_INTERNAL_ReflectComputeSPIRV(
     }
 
     /* Parse the SPIR-V into IR */
-    result = spvc_context_parse_spirv(context, (const SpvId *)code, codeSize / sizeof(SpvId), &ir);
+    result = spvc_context_parse_spirv(context, (const SpvId *)bytecode, bytecodeSize / sizeof(SpvId), &ir);
     if (result < 0) {
         SPVC_ERROR(spvc_context_parse_spirv);
         spvc_context_destroy(context);
@@ -1740,18 +1740,18 @@ static bool SDL_ShaderCross_INTERNAL_ReflectComputeSPIRV(
     }
 
     // Threadcount
-    createInfo->threadcount_x = spvc_compiler_get_execution_mode_argument_by_index(compiler, SpvExecutionModeLocalSize, 0);
-    createInfo->threadcount_y = spvc_compiler_get_execution_mode_argument_by_index(compiler, SpvExecutionModeLocalSize, 1);
-    createInfo->threadcount_z = spvc_compiler_get_execution_mode_argument_by_index(compiler, SpvExecutionModeLocalSize, 2);
+    info->threadCountX = spvc_compiler_get_execution_mode_argument_by_index(compiler, SpvExecutionModeLocalSize, 0);
+    info->threadCountY = spvc_compiler_get_execution_mode_argument_by_index(compiler, SpvExecutionModeLocalSize, 1);
+    info->threadCountZ = spvc_compiler_get_execution_mode_argument_by_index(compiler, SpvExecutionModeLocalSize, 2);
 
     spvc_context_destroy(context);
 
-    createInfo->num_samplers = num_texture_samplers;
-    createInfo->num_readonly_storage_textures = num_readonly_storage_textures;
-    createInfo->num_readonly_storage_buffers = num_readonly_storage_buffers;
-    createInfo->num_readwrite_storage_textures = num_readwrite_storage_textures;
-    createInfo->num_readwrite_storage_buffers = num_readwrite_storage_buffers;
-    createInfo->num_uniform_buffers = num_uniform_buffers;
+    info->numSamplers = num_texture_samplers;
+    info->numReadOnlyStorageTextures = num_readonly_storage_textures;
+    info->numReadOnlyStorageBuffers = num_readonly_storage_buffers;
+    info->numReadWriteStorageTextures = num_readwrite_storage_textures;
+    info->numReadWriteStorageBuffers = num_readwrite_storage_buffers;
+    info->numUniformBuffers = num_uniform_buffers;
     return true;
 }
 
@@ -1761,7 +1761,8 @@ static void *SDL_ShaderCross_INTERNAL_CompileFromSPIRV(
     size_t bytecodeSize,
     const char *entrypoint,
     SDL_ShaderCross_ShaderStage shaderStage,
-    SDL_GPUShaderFormat targetFormat
+    SDL_GPUShaderFormat targetFormat,
+    void *info
 ) {
     spvc_backend backend;
     unsigned shadermodel = 0;
@@ -1795,13 +1796,23 @@ static void *SDL_ShaderCross_INTERNAL_CompileFromSPIRV(
 
     if (shaderStage == SDL_SHADERCROSS_SHADERSTAGE_COMPUTE) {
         SDL_GPUComputePipelineCreateInfo createInfo;
-        SDL_ShaderCross_INTERNAL_ReflectComputeSPIRV(
+        SDL_ShaderCross_ComputePipelineInfo *pipelineInfo = (SDL_ShaderCross_ComputePipelineInfo *)info;
+        SDL_ShaderCross_ReflectComputeSPIRV(
             bytecode,
             bytecodeSize,
-            &createInfo);
+            pipelineInfo);
         createInfo.entrypoint = transpileContext->cleansed_entrypoint;
         createInfo.format = targetFormat;
         createInfo.props = 0;
+        createInfo.num_samplers = pipelineInfo->numSamplers;
+        createInfo.num_readonly_storage_textures = pipelineInfo->numReadOnlyStorageTextures;
+        createInfo.num_readonly_storage_buffers = pipelineInfo->numReadOnlyStorageBuffers;
+        createInfo.num_readwrite_storage_textures = pipelineInfo->numReadWriteStorageTextures;
+        createInfo.num_readwrite_storage_buffers = pipelineInfo->numReadWriteStorageBuffers;
+        createInfo.num_uniform_buffers = pipelineInfo->numUniformBuffers;
+        createInfo.threadcount_x = pipelineInfo->threadCountX;
+        createInfo.threadcount_y = pipelineInfo->threadCountY;
+        createInfo.threadcount_z = pipelineInfo->threadCountZ;
 
         if (targetFormat == SDL_GPU_SHADERFORMAT_DXBC) {
             createInfo.code = SDL_ShaderCross_INTERNAL_CompileDXBCFromHLSL(
@@ -1830,14 +1841,19 @@ static void *SDL_ShaderCross_INTERNAL_CompileFromSPIRV(
         shaderObject = SDL_CreateGPUComputePipeline(device, &createInfo);
     } else {
         SDL_GPUShaderCreateInfo createInfo;
-        SDL_ShaderCross_INTERNAL_ReflectGraphicsSPIRV(
+        SDL_ShaderCross_GraphicsShaderInfo *shaderInfo = (SDL_ShaderCross_GraphicsShaderInfo *)info;
+        SDL_ShaderCross_ReflectGraphicsSPIRV(
             bytecode,
             bytecodeSize,
-            &createInfo);
+            shaderInfo);
         createInfo.entrypoint = transpileContext->cleansed_entrypoint;
         createInfo.format = targetFormat;
         createInfo.stage = (SDL_GPUShaderStage)shaderStage;
         createInfo.props = 0;
+        createInfo.num_samplers = shaderInfo->numSamplers;
+        createInfo.num_storage_textures = shaderInfo->numStorageTextures;
+        createInfo.num_storage_buffers = shaderInfo->numStorageBuffers;
+        createInfo.num_uniform_buffers = shaderInfo->numUniformBuffers;
 
         if (targetFormat == SDL_GPU_SHADERFORMAT_DXBC) {
             createInfo.code = SDL_ShaderCross_INTERNAL_CompileDXBCFromHLSL(
@@ -2010,42 +2026,42 @@ static void *SDL_ShaderCross_INTERNAL_CreateShaderFromSPIRV(
         if (shaderStage == SDL_SHADERCROSS_SHADERSTAGE_COMPUTE) {
             SDL_GPUComputePipelineCreateInfo createInfo;
             SDL_ShaderCross_ComputePipelineInfo *pipelineInfo = (SDL_ShaderCross_ComputePipelineInfo *)info;
-            SDL_ShaderCross_INTERNAL_ReflectComputeSPIRV(
+            SDL_ShaderCross_ReflectComputeSPIRV(
                 bytecode,
                 bytecodeSize,
-                &createInfo);
+                pipelineInfo);
             createInfo.code = bytecode;
             createInfo.code_size = bytecodeSize;
             createInfo.entrypoint = entrypoint;
             createInfo.format = SDL_GPU_SHADERFORMAT_SPIRV;
             createInfo.props = 0;
-            pipelineInfo->numSamplers = createInfo.num_samplers;
-            pipelineInfo->numReadOnlyStorageTextures = createInfo.num_readonly_storage_textures;
-            pipelineInfo->numReadOnlyStorageBuffers = createInfo.num_readonly_storage_buffers;
-            pipelineInfo->numReadWriteStorageTextures = createInfo.num_readwrite_storage_textures;
-            pipelineInfo->numReadWriteStorageBuffers = createInfo.num_readwrite_storage_buffers;
-            pipelineInfo->numUniformBuffers = createInfo.num_uniform_buffers;
-            pipelineInfo->threadCountX = createInfo.threadcount_x;
-            pipelineInfo->threadCountY = createInfo.threadcount_y;
-            pipelineInfo->threadCountZ = createInfo.threadcount_z;
+            createInfo.num_samplers = pipelineInfo->numSamplers;
+            createInfo.num_readonly_storage_textures = pipelineInfo->numReadOnlyStorageTextures;
+            createInfo.num_readonly_storage_buffers = pipelineInfo->numReadOnlyStorageBuffers;
+            createInfo.num_readwrite_storage_textures = pipelineInfo->numReadWriteStorageTextures;
+            createInfo.num_readwrite_storage_buffers = pipelineInfo->numReadWriteStorageBuffers;
+            createInfo.num_uniform_buffers = pipelineInfo->numUniformBuffers;
+            createInfo.threadcount_x = pipelineInfo->threadCountX;
+            createInfo.threadcount_y = pipelineInfo->threadCountY;
+            createInfo.threadcount_z = pipelineInfo->threadCountZ;
             return SDL_CreateGPUComputePipeline(device, &createInfo);
         } else {
             SDL_GPUShaderCreateInfo createInfo;
             SDL_ShaderCross_GraphicsShaderInfo *shaderInfo = (SDL_ShaderCross_GraphicsShaderInfo *)info;
-            SDL_ShaderCross_INTERNAL_ReflectGraphicsSPIRV(
+            SDL_ShaderCross_ReflectGraphicsSPIRV(
                 bytecode,
                 bytecodeSize,
-                &createInfo);
+                shaderInfo);
             createInfo.code = bytecode;
             createInfo.code_size = bytecodeSize;
             createInfo.entrypoint = entrypoint;
             createInfo.format = SDL_GPU_SHADERFORMAT_SPIRV;
             createInfo.stage = (SDL_GPUShaderStage)shaderStage;
             createInfo.props = 0;
-            shaderInfo->numSamplers = createInfo.num_samplers;
-            shaderInfo->numStorageTextures = createInfo.num_storage_textures;
-            shaderInfo->numStorageBuffers = createInfo.num_storage_buffers;
-            shaderInfo->numUniformBuffers = createInfo.num_uniform_buffers;
+            createInfo.num_samplers = shaderInfo->numSamplers;
+            createInfo.num_storage_textures = shaderInfo->numStorageTextures;
+            createInfo.num_storage_buffers = shaderInfo->numStorageBuffers;
+            createInfo.num_uniform_buffers = shaderInfo->numUniformBuffers;
             return SDL_CreateGPUShader(device, &createInfo);
         }
     } else if (shader_formats & SDL_GPU_SHADERFORMAT_MSL) {
@@ -2071,7 +2087,8 @@ static void *SDL_ShaderCross_INTERNAL_CreateShaderFromSPIRV(
         bytecodeSize,
         entrypoint,
         shaderStage,
-        format);
+        format,
+        info);
 }
 
 SDL_GPUShader *SDL_ShaderCross_CompileGraphicsShaderFromSPIRV(

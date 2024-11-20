@@ -23,14 +23,15 @@
 #include <SDL3/SDL_log.h>
 #include <SDL3/SDL_iostream.h>
 
-// We can emit HLSL as a destination, so let's redefine the shader format enum.
+// We can emit HLSL and JSON as a destination, so let's redefine the shader format enum.
 typedef enum ShaderCross_DestinationFormat {
     SHADERFORMAT_INVALID,
     SHADERFORMAT_SPIRV,
     SHADERFORMAT_DXBC,
     SHADERFORMAT_DXIL,
     SHADERFORMAT_MSL,
-    SHADERFORMAT_HLSL
+    SHADERFORMAT_HLSL,
+    SHADERFORMAT_JSON
 } ShaderCross_ShaderFormat;
 
 void print_help(void)
@@ -39,12 +40,96 @@ void print_help(void)
     SDL_Log("Usage: shadercross <input> [options]");
     SDL_Log("Required options:\n");
     SDL_Log("  %-*s %s", column_width, "-s | --source <value>", "Source language format. May be inferred from the filename. Values: [SPIRV, HLSL]");
-    SDL_Log("  %-*s %s", column_width, "-d | --dest <value>", "Destination format. May be inferred from the filename. Values: [DXBC, DXIL, MSL, SPIRV, HLSL]");
+    SDL_Log("  %-*s %s", column_width, "-d | --dest <value>", "Destination format. May be inferred from the filename. Values: [DXBC, DXIL, MSL, SPIRV, HLSL, JSON]");
     SDL_Log("  %-*s %s", column_width, "-t | --stage <value>", "Shader stage. May be inferred from the filename. Values: [vertex, fragment, compute]");
     SDL_Log("  %-*s %s", column_width, "-e | --entrypoint <value>", "Entrypoint function name. Default: \"main\".");
     SDL_Log("  %-*s %s", column_width, "-I | --include <value>", "HLSL include directory. Only used with HLSL source. Optional.");
     SDL_Log("  %-*s %s", column_width, "-D<value>", "HLSL define. Only used with HLSL source. Optional. Can be repeated.");
     SDL_Log("  %-*s %s", column_width, "-o | --output <value>", "Output file.");
+}
+
+void write_string(SDL_IOStream *outputIO, const char *str)
+{
+    SDL_WriteIO(outputIO, str, SDL_strlen(str));
+}
+
+void write_graphics_reflect_json(SDL_IOStream *outputIO, SDL_ShaderCross_GraphicsShaderInfo *info)
+{
+    char buffer[16];
+    write_string(outputIO, "{ ");
+
+    write_string(outputIO, "\"samplers\": ");
+    SDL_itoa(info->numSamplers, buffer, 10);
+    write_string(outputIO, buffer);
+    write_string(outputIO, ", ");
+
+    write_string(outputIO, "\"storageTextures\": ");
+    SDL_itoa(info->numStorageTextures, buffer, 10);
+    write_string(outputIO, buffer);
+    write_string(outputIO, ", ");
+
+    write_string(outputIO, "\"storageBuffers\": ");
+    SDL_itoa(info->numStorageBuffers, buffer, 10);
+    write_string(outputIO, buffer);
+    write_string(outputIO, ", ");
+
+    write_string(outputIO, "\"uniformBuffers\": ");
+    SDL_itoa(info->numUniformBuffers, buffer, 10);
+    write_string(outputIO, buffer);
+
+    write_string(outputIO, " }\n");
+}
+
+void write_compute_reflect_json(SDL_IOStream *outputIO, SDL_ShaderCross_ComputePipelineInfo *info)
+{
+    char buffer[16];
+    write_string(outputIO, "{ ");
+
+    write_string(outputIO, "\"samplers\": ");
+    SDL_itoa(info->numSamplers, buffer, 10);
+    write_string(outputIO, buffer);
+    write_string(outputIO, ", ");
+
+    write_string(outputIO, "\"readOnlyStorageTextures\": ");
+    SDL_itoa(info->numReadOnlyStorageTextures, buffer, 10);
+    write_string(outputIO, buffer);
+    write_string(outputIO, ", ");
+
+    write_string(outputIO, "\"readOnlyStorageBuffers\": ");
+    SDL_itoa(info->numReadOnlyStorageBuffers, buffer, 10);
+    write_string(outputIO, buffer);
+    write_string(outputIO, ", ");
+
+    write_string(outputIO, "\"readWriteStorageTextures\": ");
+    SDL_itoa(info->numReadWriteStorageTextures, buffer, 10);
+    write_string(outputIO, buffer);
+    write_string(outputIO, ", ");
+
+    write_string(outputIO, "\"readWriteStorageBuffers\": ");
+    SDL_itoa(info->numReadWriteStorageBuffers, buffer, 10);
+    write_string(outputIO, buffer);
+    write_string(outputIO, ", ");
+
+    write_string(outputIO, "\"uniformBuffers\": ");
+    SDL_itoa(info->numUniformBuffers, buffer, 10);
+    write_string(outputIO, buffer);
+    write_string(outputIO, ", ");
+
+    write_string(outputIO, "\"threadCountX\": ");
+    SDL_itoa(info->threadCountX, buffer, 10);
+    write_string(outputIO, buffer);
+    write_string(outputIO, ", ");
+
+    write_string(outputIO, "\"threadCountY\": ");
+    SDL_itoa(info->threadCountY, buffer, 10);
+    write_string(outputIO, buffer);
+    write_string(outputIO, ", ");
+
+    write_string(outputIO, "\"threadCountZ\": ");
+    SDL_itoa(info->threadCountZ, buffer, 10);
+    write_string(outputIO, buffer);
+
+    write_string(outputIO, " }\n");
 }
 
 int main(int argc, char *argv[])
@@ -114,6 +199,9 @@ int main(int argc, char *argv[])
                     destinationValid = true;
                 } else if (SDL_strcasecmp(argv[i], "HLSL") == 0) {
                     destinationFormat = SHADERFORMAT_HLSL;
+                    destinationValid = true;
+                } else if (SDL_strcasecmp(argv[i], "JSON") == 0) {
+                    destinationFormat = SHADERFORMAT_JSON;
                     destinationValid = true;
                 } else {
                     SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Unrecognized destination input %s, destination must be DXBC, DXIL, MSL or SPIRV!", argv[i]);
@@ -234,6 +322,8 @@ int main(int argc, char *argv[])
             destinationFormat = SHADERFORMAT_SPIRV;
         } else if (SDL_strstr(outputFilename, ".hlsl")) {
             destinationFormat = SHADERFORMAT_HLSL;
+        } else if (SDL_strstr(outputFilename, ".json")) {
+            destinationFormat = SHADERFORMAT_JSON;
         } else {
             SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%s", "Could not infer destination format!");
             print_help();
@@ -336,6 +426,33 @@ int main(int argc, char *argv[])
             case SHADERFORMAT_SPIRV: {
                 SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Input and output are both SPIRV. Did you mean to do that?");
                 result = 1;
+                break;
+            }
+
+            case SHADERFORMAT_JSON: {
+                if (shaderStage == SDL_SHADERCROSS_SHADERSTAGE_COMPUTE) {
+                    SDL_ShaderCross_ComputePipelineInfo info;
+                    if (SDL_ShaderCross_ReflectComputeSPIRV(
+                        fileData,
+                        fileSize,
+                        &info)) {
+                        write_compute_reflect_json(outputIO, &info);
+                    } else {
+                        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to reflect SPIRV: %s", SDL_GetError());
+                        result = 1;
+                    }
+                } else {
+                    SDL_ShaderCross_GraphicsShaderInfo info;
+                    if (SDL_ShaderCross_ReflectGraphicsSPIRV(
+                        fileData,
+                        fileSize,
+                        &info)) {
+                        write_graphics_reflect_json(outputIO, &info);
+                    } else {
+                        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to reflect SPIRV: %s", SDL_GetError());
+                        result = 1;
+                    }
+                }
                 break;
             }
 
@@ -466,6 +583,55 @@ int main(int argc, char *argv[])
                 SDL_IOprintf(outputIO, "%s", buffer);
                 SDL_free(spirv);
                 SDL_free(buffer);
+                break;
+            }
+
+            case SHADERFORMAT_JSON: {
+                void *spirv = SDL_ShaderCross_CompileSPIRVFromHLSL(
+                    fileData,
+                    entrypointName,
+                    includeDir,
+                    defines,
+                    numDefines,
+                    shaderStage,
+                    &bytecodeSize);
+
+                if (spirv == NULL) {
+                    SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to compile HLSL to SPIRV: %s", SDL_GetError());
+                    result = 1;
+                    break;
+                }
+
+                if (shaderStage == SDL_SHADERCROSS_SHADERSTAGE_COMPUTE) {
+                    SDL_ShaderCross_ComputePipelineInfo info;
+                    bool result = SDL_ShaderCross_ReflectComputeSPIRV(
+                        spirv,
+                        bytecodeSize,
+                        &info);
+                    SDL_free(spirv);
+
+                    if (result) {
+                        write_compute_reflect_json(outputIO, &info);
+                    } else {
+                        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to reflect SPIRV: %s", SDL_GetError());
+                        result = 1;
+                    }
+                } else {
+                    SDL_ShaderCross_GraphicsShaderInfo info;
+                    bool result = !SDL_ShaderCross_ReflectGraphicsSPIRV(
+                        spirv,
+                        bytecodeSize,
+                        &info);
+                    SDL_free(spirv);
+
+                    if (result) {
+                        write_graphics_reflect_json(outputIO, &info);
+                    } else {
+                        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to reflect SPIRV: %s", SDL_GetError());
+                        result = 1;
+                    }
+                }
+
                 break;
             }
 

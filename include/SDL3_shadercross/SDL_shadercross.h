@@ -198,6 +198,34 @@ extern SDL_DECLSPEC SDL_GPUComputePipeline * SDLCALL SDL_ShaderCross_CompileComp
     SDL_ShaderCross_ComputePipelineInfo *info);
 
 /**
+ * Reflect graphics shader info from SPIRV code.
+ *
+ * \param bytecode the SPIRV bytecode.
+ * \param bytecodeSize the length of the SPIRV bytecode.
+ * \param info a pointer filled in with shader metadata.
+ *
+ * \threadsafety It is safe to call this function from any thread.
+ */
+extern SDL_DECLSPEC bool SDLCALL SDL_ShaderCross_ReflectGraphicsSPIRV(
+    const Uint8 *bytecode,
+    size_t bytecodeSize,
+    SDL_ShaderCross_GraphicsShaderInfo *info);
+
+/**
+ * Reflect compute pipeline info from SPIRV code.
+ *
+ * \param bytecode the SPIRV bytecode.
+ * \param bytecodeSize the length of the SPIRV bytecode.
+ * \param info a pointer filled in with compute pipeline metadata.
+ *
+ * \threadsafety It is safe to call this function from any thread.
+ */
+extern SDL_DECLSPEC bool SDLCALL SDL_ShaderCross_ReflectComputeSPIRV(
+    const Uint8 *bytecode,
+    size_t bytecodeSize,
+    SDL_ShaderCross_ComputePipelineInfo *info);
+
+/**
  * Get the supported shader formats that HLSL cross-compilation can output
  *
  * \threadsafety It is safe to call this function from any thread.

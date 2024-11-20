@@ -15,5 +15,7 @@ SDL3_shadercross_0.0.0 {
     SDL_ShaderCross_CompileSPIRVFromHLSL;
     SDL_ShaderCross_CompileGraphicsShaderFromHLSL;
     SDL_ShaderCross_CompileComputePipelineFromHLSL;
+    SDL_ShaderCross_ReflectGraphicsSPIRV;
+    SDL_ShaderCross_ReflectComputeSPIRV;
   local: *;
 };
