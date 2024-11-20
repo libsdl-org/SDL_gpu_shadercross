@@ -66,7 +66,7 @@ int main(int argc, char *argv[])
     bool accept_optionals = true;
 
     Uint32 numDefines = 0;
-    const char **defines = NULL;
+    char **defines = NULL;
 
     for (int i = 1; i < argc; i += 1) {
         char *arg = argv[i];
@@ -172,7 +172,7 @@ int main(int argc, char *argv[])
                 outputFilename = argv[i];
             } else if (strncmp(argv[i], "-D", strlen("-D")) == 0) {
                 numDefines += 1;
-                defines = SDL_realloc(defines, sizeof(const char *) * numDefines);
+                defines = SDL_realloc(defines, sizeof(char *) * numDefines);
                 defines[numDefines - 1] = argv[i];
             } else if (SDL_strcmp(arg, "--") == 0) {
                 accept_optionals = false;
