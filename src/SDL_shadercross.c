@@ -332,6 +332,8 @@ static void *SDL_ShaderCross_INTERNAL_CompileUsingDXC(
     const char *hlslSource,
     const char *entrypoint,
     const char *includeDir,
+    const char **defines,
+    Uint32 numDefines,
     SDL_ShaderCross_ShaderStage shaderStage,
     bool spirv,
     size_t *size) // filled in with number of bytes of returned buffer
@@ -405,17 +407,22 @@ static void *SDL_ShaderCross_INTERNAL_CompileUsingDXC(
         return NULL;
     }
 
-    LPCWSTR args[] = {
-        (LPCWSTR)L"-E",
-        (LPCWSTR)entryPointUtf16,
-        NULL,
-        NULL,
-        NULL,
-        NULL,
-        NULL,
-        NULL
-    };
-    Uint32 argCount = 2;
+    LPCWSTR *args = SDL_malloc(sizeof(LPCWSTR) * (numDefines + 8));
+    Uint32 argCount = 0;
+
+    for (Uint32 i = 0; i < numDefines; i += 1) {
+        args[argCount++] = (wchar_t *)SDL_iconv_string("WCHAR_T", "UTF-8", defines[i], SDL_utf8strlen(defines[i]) + 1);
+        if (args[argCount - 1] == NULL) {
+            SDL_SetError("%s", "Failed to convert define argument to WCHAR_T!");
+            SDL_free(args);
+            dxcInstance->lpVtbl->Release(dxcInstance);
+            utils->lpVtbl->Release(utils);
+            return NULL;
+        }
+    }
+
+    args[argCount++] = (LPCWSTR)L"-E";
+    args[argCount++] = (LPCWSTR)entryPointUtf16;
 
     if (includeDir != NULL) {
         includeDirLength = SDL_utf8strlen(includeDir) + 1;
@@ -521,6 +528,11 @@ static void *SDL_ShaderCross_INTERNAL_CompileUsingDXC(
     dxcInstance->lpVtbl->Release(dxcInstance);
     utils->lpVtbl->Release(utils);
 
+    for (Uint32 i = 0; i < numDefines; i += 1) {
+        SDL_free(args[i]);
+    }
+    SDL_free(args);
+
     return buffer;
 #else
     SDL_SetError("%s", "Shadercross was not built with DXC support, cannot compile using DXC!");
@@ -532,6 +544,8 @@ void *SDL_ShaderCross_CompileDXILFromHLSL(
     const char *hlslSource,
     const char *entrypoint,
     const char *includeDir,
+    const char **defines,
+    Uint32 numDefines,
     SDL_ShaderCross_ShaderStage shaderStage,
     size_t *size)
 {
@@ -541,6 +555,8 @@ void *SDL_ShaderCross_CompileDXILFromHLSL(
         hlslSource,
         entrypoint,
         includeDir,
+        defines,
+        numDefines,
         shaderStage,
         &spirvSize);
 
@@ -563,6 +579,8 @@ void *SDL_ShaderCross_CompileDXILFromHLSL(
         translatedSource,
         entrypoint,
         includeDir,
+        defines,
+        numDefines,
         shaderStage,
         false,
         size);
@@ -572,6 +590,8 @@ void *SDL_ShaderCross_CompileSPIRVFromHLSL(
     const char *hlslSource,
     const char *entrypoint,
     const char *includeDir,
+    const char **defines,
+    Uint32 numDefines,
     SDL_ShaderCross_ShaderStage shaderStage,
     size_t *size)
 {
@@ -579,6 +599,8 @@ void *SDL_ShaderCross_CompileSPIRVFromHLSL(
         hlslSource,
         entrypoint,
         includeDir,
+        defines,
+        numDefines,
         shaderStage,
         true,
         size);
@@ -702,6 +724,8 @@ void *SDL_ShaderCross_INTERNAL_CompileDXBCFromHLSL(
     const char *hlslSource,
     const char *entrypoint,
     const char *includeDir,
+    const char **defines,
+    Uint32 numDefines,
     SDL_ShaderCross_ShaderStage shaderStage,
     bool enableRoundtrip,
     size_t *size) // filled in with number of bytes of returned buffer
@@ -715,6 +739,8 @@ void *SDL_ShaderCross_INTERNAL_CompileDXBCFromHLSL(
             hlslSource,
             entrypoint,
             includeDir,
+            defines,
+            numDefines,
             shaderStage,
             &spirv_size);
 
@@ -770,6 +796,8 @@ void *SDL_ShaderCross_CompileDXBCFromHLSL(
     const char *hlslSource,
     const char *entrypoint,
     const char *includeDir,
+    const char **defines,
+    Uint32 numDefines,
     SDL_ShaderCross_ShaderStage shaderStage,
     size_t *size) // filled in with number of bytes of returned buffer
 {
@@ -777,6 +805,8 @@ void *SDL_ShaderCross_CompileDXBCFromHLSL(
         hlslSource,
         entrypoint,
         includeDir,
+        defines,
+        numDefines,
         shaderStage,
         true,
         size);
@@ -787,6 +817,8 @@ static void *SDL_ShaderCross_INTERNAL_CreateShaderFromHLSL(
     const char *hlslSource,
     const char *entrypoint,
     const char *includeDir,
+    const char **defines,
+    Uint32 numDefines,
     SDL_ShaderCross_ShaderStage shaderStage)
 {
     size_t bytecodeSize;
@@ -796,6 +828,8 @@ static void *SDL_ShaderCross_INTERNAL_CreateShaderFromHLSL(
         hlslSource,
         entrypoint,
         includeDir,
+        defines,
+        numDefines,
         shaderStage,
         &bytecodeSize);
 
@@ -828,6 +862,8 @@ SDL_GPUShader *SDL_ShaderCross_CompileGraphicsShaderFromHLSL(
     const char *hlslSource,
     const char *entrypoint,
     const char *includeDir,
+    const char **defines,
+    Uint32 numDefines,
     SDL_GPUShaderStage graphicsShaderStage)
 {
     return (SDL_GPUShader *)SDL_ShaderCross_INTERNAL_CreateShaderFromHLSL(
@@ -835,6 +871,8 @@ SDL_GPUShader *SDL_ShaderCross_CompileGraphicsShaderFromHLSL(
         hlslSource,
         entrypoint,
         includeDir,
+        defines,
+        numDefines,
         (SDL_ShaderCross_ShaderStage)graphicsShaderStage);
 }
 
@@ -842,13 +880,17 @@ SDL_GPUComputePipeline *SDL_ShaderCross_CompileComputePipelineFromHLSL(
     SDL_GPUDevice *device,
     const char *hlslSource,
     const char *entrypoint,
-    const char *includeDir)
+    const char *includeDir,
+    const char **defines,
+    Uint32 numDefines)
 {
     return (SDL_GPUComputePipeline *)SDL_ShaderCross_INTERNAL_CreateShaderFromHLSL(
         device,
         hlslSource,
         entrypoint,
         includeDir,
+        defines,
+        numDefines,
         SDL_SHADERCROSS_SHADERSTAGE_COMPUTE);
 }
 
@@ -1759,6 +1801,8 @@ static void *SDL_ShaderCross_INTERNAL_CompileFromSPIRV(
                 transpileContext->translated_source,
                 transpileContext->cleansed_entrypoint,
                 NULL,
+                NULL,
+                0,
                 shaderStage,
                 false,
                 &createInfo.code_size);
@@ -1767,6 +1811,8 @@ static void *SDL_ShaderCross_INTERNAL_CompileFromSPIRV(
                 transpileContext->translated_source,
                 transpileContext->cleansed_entrypoint,
                 NULL,
+                NULL,
+                0,
                 shaderStage,
                 &createInfo.code_size);
         } else { // MSL
@@ -1791,6 +1837,8 @@ static void *SDL_ShaderCross_INTERNAL_CompileFromSPIRV(
                 transpileContext->translated_source,
                 transpileContext->cleansed_entrypoint,
                 NULL,
+                NULL,
+                0,
                 shaderStage,
                 false,
                 &createInfo.code_size);
@@ -1799,6 +1847,8 @@ static void *SDL_ShaderCross_INTERNAL_CompileFromSPIRV(
                 transpileContext->translated_source,
                 transpileContext->cleansed_entrypoint,
                 NULL,
+                NULL,
+                0,
                 shaderStage,
                 &createInfo.code_size);
         } else { // MSL
@@ -1890,6 +1940,8 @@ void *SDL_ShaderCross_CompileDXBCFromSPIRV(
         context->translated_source,
         context->cleansed_entrypoint,
         NULL,
+        NULL,
+        0,
         shaderStage,
         false,
         size);
@@ -1926,6 +1978,8 @@ void *SDL_ShaderCross_CompileDXILFromSPIRV(
         context->translated_source,
         context->cleansed_entrypoint,
         NULL,
+        NULL,
+        0,
         shaderStage,
         size);
 

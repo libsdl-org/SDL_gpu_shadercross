@@ -43,12 +43,12 @@ void print_help(void)
     SDL_Log("  %-*s %s", column_width, "-t | --stage <value>", "Shader stage. May be inferred from the filename. Values: [vertex, fragment, compute]");
     SDL_Log("  %-*s %s", column_width, "-e | --entrypoint <value>", "Entrypoint function name. Default: \"main\".");
     SDL_Log("  %-*s %s", column_width, "-I | --include <value>", "HLSL include directory. Only used with HLSL source. Optional.");
+    SDL_Log("  %-*s %s", column_width, "-D<value>", "HLSL define. Only used with HLSL source. Optional. Can be repeated.");
     SDL_Log("  %-*s %s", column_width, "-o | --output <value>", "Output file.");
 }
 
 int main(int argc, char *argv[])
 {
-
     bool sourceValid = false;
     bool destinationValid = false;
     bool stageValid = false;
@@ -64,6 +64,9 @@ int main(int argc, char *argv[])
     size_t fileSize = 0;
     void *fileData = NULL;
     bool accept_optionals = true;
+
+    Uint32 numDefines = 0;
+    const char **defines = NULL;
 
     for (int i = 1; i < argc; i += 1) {
         char *arg = argv[i];
@@ -167,6 +170,10 @@ int main(int argc, char *argv[])
                 }
                 i += 1;
                 outputFilename = argv[i];
+            } else if (strncmp(argv[i], "-D", strlen("-D")) == 0) {
+                numDefines += 1;
+                defines = SDL_realloc(defines, sizeof(const char *) * numDefines);
+                defines[numDefines - 1] = argv[i];
             } else if (SDL_strcmp(arg, "--") == 0) {
                 accept_optionals = false;
             } else {
@@ -345,6 +352,8 @@ int main(int argc, char *argv[])
                     fileData,
                     entrypointName,
                     includeDir,
+                    defines,
+                    numDefines,
                     shaderStage,
                     &bytecodeSize);
                 if (buffer == NULL) {
@@ -362,6 +371,8 @@ int main(int argc, char *argv[])
                     fileData,
                     entrypointName,
                     includeDir,
+                    defines,
+                    numDefines,
                     shaderStage,
                     &bytecodeSize);
                 if (buffer == NULL) {
@@ -380,6 +391,8 @@ int main(int argc, char *argv[])
                     fileData,
                     entrypointName,
                     includeDir,
+                    defines,
+                    numDefines,
                     shaderStage,
                     &bytecodeSize);
                 if (spirv == NULL) {
@@ -408,6 +421,8 @@ int main(int argc, char *argv[])
                     fileData,
                     entrypointName,
                     includeDir,
+                    defines,
+                    numDefines,
                     shaderStage,
                     &bytecodeSize);
                 if (buffer == NULL) {
@@ -425,11 +440,13 @@ int main(int argc, char *argv[])
                     fileData,
                     entrypointName,
                     includeDir,
+                    defines,
+                    numDefines,
                     shaderStage,
                     &bytecodeSize);
 
                 if (spirv == NULL) {
-                    SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%s", "Failed to compile HLSL to SPIRV!");
+                    SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to compile HLSL to SPIRV: %s", SDL_GetError());
                     result = 1;
                     break;
                 }
@@ -441,7 +458,7 @@ int main(int argc, char *argv[])
                     shaderStage);
 
                 if (buffer == NULL) {
-                    SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%s", "Failed to transpile HLSL from SPIRV!");
+                    SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to transpile HLSL from SPIRV: %s", SDL_GetError());
                     result = 1;
                     break;
                 }
@@ -462,6 +479,7 @@ int main(int argc, char *argv[])
 
     SDL_CloseIO(outputIO);
     SDL_free(fileData);
+    SDL_free(defines);
     SDL_ShaderCross_Quit();
     return result;
 }
