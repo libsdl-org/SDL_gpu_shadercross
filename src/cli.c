@@ -48,88 +48,33 @@ void print_help(void)
     SDL_Log("  %-*s %s", column_width, "-o | --output <value>", "Output file.");
 }
 
-void write_string(SDL_IOStream *outputIO, const char *str)
-{
-    SDL_WriteIO(outputIO, str, SDL_strlen(str));
-}
-
 void write_graphics_reflect_json(SDL_IOStream *outputIO, SDL_ShaderCross_GraphicsShaderInfo *info)
 {
-    char buffer[16];
-    write_string(outputIO, "{ ");
-
-    write_string(outputIO, "\"samplers\": ");
-    SDL_itoa(info->numSamplers, buffer, 10);
-    write_string(outputIO, buffer);
-    write_string(outputIO, ", ");
-
-    write_string(outputIO, "\"storageTextures\": ");
-    SDL_itoa(info->numStorageTextures, buffer, 10);
-    write_string(outputIO, buffer);
-    write_string(outputIO, ", ");
-
-    write_string(outputIO, "\"storageBuffers\": ");
-    SDL_itoa(info->numStorageBuffers, buffer, 10);
-    write_string(outputIO, buffer);
-    write_string(outputIO, ", ");
-
-    write_string(outputIO, "\"uniformBuffers\": ");
-    SDL_itoa(info->numUniformBuffers, buffer, 10);
-    write_string(outputIO, buffer);
-
-    write_string(outputIO, " }\n");
+    SDL_IOprintf(
+        outputIO,
+        "{ \"samplers\": %u, \"storageTextures\": %u, \"storageBuffers\": %u, \"uniformBuffers\": %u }\n",
+        info->numSamplers,
+        info->numStorageTextures,
+        info->numStorageBuffers,
+        info->numUniformBuffers
+    );
 }
 
 void write_compute_reflect_json(SDL_IOStream *outputIO, SDL_ShaderCross_ComputePipelineInfo *info)
 {
-    char buffer[16];
-    write_string(outputIO, "{ ");
-
-    write_string(outputIO, "\"samplers\": ");
-    SDL_itoa(info->numSamplers, buffer, 10);
-    write_string(outputIO, buffer);
-    write_string(outputIO, ", ");
-
-    write_string(outputIO, "\"readOnlyStorageTextures\": ");
-    SDL_itoa(info->numReadOnlyStorageTextures, buffer, 10);
-    write_string(outputIO, buffer);
-    write_string(outputIO, ", ");
-
-    write_string(outputIO, "\"readOnlyStorageBuffers\": ");
-    SDL_itoa(info->numReadOnlyStorageBuffers, buffer, 10);
-    write_string(outputIO, buffer);
-    write_string(outputIO, ", ");
-
-    write_string(outputIO, "\"readWriteStorageTextures\": ");
-    SDL_itoa(info->numReadWriteStorageTextures, buffer, 10);
-    write_string(outputIO, buffer);
-    write_string(outputIO, ", ");
-
-    write_string(outputIO, "\"readWriteStorageBuffers\": ");
-    SDL_itoa(info->numReadWriteStorageBuffers, buffer, 10);
-    write_string(outputIO, buffer);
-    write_string(outputIO, ", ");
-
-    write_string(outputIO, "\"uniformBuffers\": ");
-    SDL_itoa(info->numUniformBuffers, buffer, 10);
-    write_string(outputIO, buffer);
-    write_string(outputIO, ", ");
-
-    write_string(outputIO, "\"threadCountX\": ");
-    SDL_itoa(info->threadCountX, buffer, 10);
-    write_string(outputIO, buffer);
-    write_string(outputIO, ", ");
-
-    write_string(outputIO, "\"threadCountY\": ");
-    SDL_itoa(info->threadCountY, buffer, 10);
-    write_string(outputIO, buffer);
-    write_string(outputIO, ", ");
-
-    write_string(outputIO, "\"threadCountZ\": ");
-    SDL_itoa(info->threadCountZ, buffer, 10);
-    write_string(outputIO, buffer);
-
-    write_string(outputIO, " }\n");
+    SDL_IOprintf(
+        outputIO,
+        "{ \"samplers\": %u, \"readOnlyStorageTextures\": %u, \"readOnlyStorageBuffers\": %u, \"readWriteStorageTextures\": %u, \"readWriteStorageBuffers\": %u, \"uniformBuffers\": %u, \"threadCountX\": %u, \"threadCountY\": %u, \"threadCountZ\": %u }\n",
+        info->numSamplers,
+        info->numReadOnlyStorageTextures,
+        info->numReadOnlyStorageBuffers,
+        info->numReadWriteStorageTextures,
+        info->numReadWriteStorageBuffers,
+        info->numUniformBuffers,
+        info->threadCountX,
+        info->threadCountY,
+        info->threadCountZ
+    );
 }
 
 int main(int argc, char *argv[])
@@ -618,7 +563,7 @@ int main(int argc, char *argv[])
                     }
                 } else {
                     SDL_ShaderCross_GraphicsShaderInfo info;
-                    bool result = !SDL_ShaderCross_ReflectGraphicsSPIRV(
+                    bool result = SDL_ShaderCross_ReflectGraphicsSPIRV(
                         spirv,
                         bytecodeSize,
                         &info);
