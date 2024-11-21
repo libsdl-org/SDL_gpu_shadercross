@@ -1470,10 +1470,12 @@ bool SDL_ShaderCross_ReflectGraphicsSPIRV(
     spvc_context context = NULL;
     spvc_parsed_ir ir = NULL;
     spvc_compiler compiler = NULL;
-    size_t num_texture_samplers;
-    size_t num_storage_textures;
-    size_t num_storage_buffers;
-    size_t num_uniform_buffers;
+    size_t num_texture_samplers = 0;
+    size_t num_storage_textures = 0;
+    size_t num_storage_buffers = 0;
+    size_t num_uniform_buffers = 0;
+    size_t num_separate_samplers = 0; // HLSL edge case
+    size_t num_separate_images = 0; // HLSL edge case
 
     /* Create the SPIRV-Cross context */
     result = spvc_context_create(&context);
@@ -1526,12 +1528,13 @@ bool SDL_ShaderCross_ReflectGraphicsSPIRV(
             resources,
             SPVC_RESOURCE_TYPE_SEPARATE_SAMPLERS,
             (const spvc_reflected_resource **)&reflected_resources,
-            &num_texture_samplers);
+            &num_separate_samplers);
         if (result < 0) {
             SPVC_ERROR(spvc_resources_get_resource_list_for_type);
             spvc_context_destroy(context);
             return false;
         }
+        num_texture_samplers = num_separate_samplers;
     }
 
     // Storage textures
@@ -1545,6 +1548,20 @@ bool SDL_ShaderCross_ReflectGraphicsSPIRV(
         spvc_context_destroy(context);
         return false;
     }
+
+    // If source is HLSL, storage images might be marked as separate images
+    result = spvc_resources_get_resource_list_for_type(
+        resources,
+        SPVC_RESOURCE_TYPE_SEPARATE_IMAGE,
+        (const spvc_reflected_resource **)&reflected_resources,
+        &num_separate_images);
+    if (result < 0) {
+        SPVC_ERROR(spvc_resources_get_resource_list_for_type);
+        spvc_context_destroy(context);
+        return false;
+    }
+    // The number of storage textures is the number of separate images minus the number of samplers.
+    num_storage_textures += (num_separate_images - num_separate_samplers);
 
     // Storage buffers
     result = spvc_resources_get_resource_list_for_type(
@@ -1597,6 +1614,8 @@ bool SDL_ShaderCross_ReflectComputeSPIRV(
 
     size_t num_storage_textures = 0;
     size_t num_storage_buffers = 0;
+    size_t num_separate_samplers = 0; // HLSL edge case
+    size_t num_separate_images = 0; // HLSL edge case
 
     /* Create the SPIRV-Cross context */
     result = spvc_context_create(&context);
@@ -1649,12 +1668,13 @@ bool SDL_ShaderCross_ReflectComputeSPIRV(
             resources,
             SPVC_RESOURCE_TYPE_SEPARATE_SAMPLERS,
             (const spvc_reflected_resource **)&reflected_resources,
-            &num_texture_samplers);
+            &num_separate_samplers);
         if (result < 0) {
             SPVC_ERROR(spvc_resources_get_resource_list_for_type);
             spvc_context_destroy(context);
             return false;
         }
+        num_texture_samplers = num_separate_samplers;
     }
 
     // Storage textures
@@ -1668,6 +1688,20 @@ bool SDL_ShaderCross_ReflectComputeSPIRV(
         spvc_context_destroy(context);
         return false;
     }
+
+    // If source is HLSL, readonly storage images might be marked as separate images
+    result = spvc_resources_get_resource_list_for_type(
+        resources,
+        SPVC_RESOURCE_TYPE_SEPARATE_IMAGE,
+        (const spvc_reflected_resource **)&reflected_resources,
+        &num_separate_images);
+    if (result < 0) {
+        SPVC_ERROR(spvc_resources_get_resource_list_for_type);
+        spvc_context_destroy(context);
+        return false;
+    }
+    // The number of storage textures is the number of separate images minus the number of samplers.
+    num_storage_textures += (num_separate_images - num_separate_samplers);
 
     for (size_t i = 0; i < num_storage_textures; i += 1) {
         if (!spvc_compiler_has_decoration(compiler, reflected_resources[i].id, SpvDecorationDescriptorSet) || !spvc_compiler_has_decoration(compiler, reflected_resources[i].id, SpvDecorationBinding)) {
