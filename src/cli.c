@@ -43,9 +43,10 @@ void print_help(void)
     SDL_Log("  %-*s %s", column_width, "-d | --dest <value>", "Destination format. May be inferred from the filename. Values: [DXBC, DXIL, MSL, SPIRV, HLSL, JSON]");
     SDL_Log("  %-*s %s", column_width, "-t | --stage <value>", "Shader stage. May be inferred from the filename. Values: [vertex, fragment, compute]");
     SDL_Log("  %-*s %s", column_width, "-e | --entrypoint <value>", "Entrypoint function name. Default: \"main\".");
-    SDL_Log("  %-*s %s", column_width, "-I | --include <value>", "HLSL include directory. Only used with HLSL source. Optional.");
-    SDL_Log("  %-*s %s", column_width, "-D<value>", "HLSL define. Only used with HLSL source. Optional. Can be repeated.");
     SDL_Log("  %-*s %s", column_width, "-o | --output <value>", "Output file.");
+    SDL_Log("Optional options:\n");
+    SDL_Log("  %-*s %s", column_width, "-I | --include <value>", "HLSL include directory. Only used with HLSL source.");
+    SDL_Log("  %-*s %s", column_width, "-D<value>", "HLSL define. Only used with HLSL source. Can be repeated.");
 }
 
 void write_graphics_reflect_json(SDL_IOStream *outputIO, SDL_ShaderCross_GraphicsShaderInfo *info)
