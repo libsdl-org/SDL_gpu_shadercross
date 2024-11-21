@@ -462,8 +462,8 @@ if(SDLSHADERCROSS_INSTALL_RUNTIME)
 		find_package(BISON REQUIRED)
 		ExternalProject_Add(vkd3d
 			DEPENDS 			spirv_headers vulkan_headers vulkan_loader
-			URL					"https://dl.winehq.org/vkd3d/source/vkd3d-1.13.tar.xz"
-			URL_HASH			"SHA256=cf637873695fcc02fab308f68608f0bbb90481332a2ff0a9597c7c9fd97d363d"
+			URL					"https://dl.winehq.org/vkd3d/source/vkd3d-1.14.tar.xz"
+			URL_HASH			"SHA256=c94015d59ebe8ae72c4d802af5ca1517d9744548842a4e776534612a8d905485"
 			DOWNLOAD_EXTRACT_TIMESTAMP "1"
 			CONFIGURE_COMMAND 	"sh" "<SOURCE_DIR>/configure" "--prefix=<INSTALL_DIR>" "--enable-tests=no" "--enable-demos=no" "--disable-doxygen-doc" "CFLAGS=-I${spirv_headers_install_dir}/include -I${vulkan_headers_install_dir}/include -I${vulkan_loader_install_dir}/include" "LDFLAGS=-L${vulkan_loader_install_dir}/lib" "BISON=${BISON_EXECUTABLE}"
 			BUILD_COMMAND	 	"make"
