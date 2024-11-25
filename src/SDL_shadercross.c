@@ -971,6 +971,7 @@ static SPIRVTranspileContext *SDL_ShaderCross_INTERNAL_TranspileFromSPIRV(
         spvc_compiler_options_set_uint(options, SPVC_COMPILER_OPTION_HLSL_SHADER_MODEL, shadermodel);
         spvc_compiler_options_set_uint(options, SPVC_COMPILER_OPTION_HLSL_NONWRITABLE_UAV_TEXTURE_AS_SRV, 1);
         spvc_compiler_options_set_uint(options, SPVC_COMPILER_OPTION_HLSL_FLATTEN_MATRIX_VERTEX_INPUT_SEMANTICS, 1);
+        spvc_compiler_options_set_bool(options, SPVC_COMPILER_OPTION_HLSL_USE_ENTRY_POINT_NAME, true);
     }
 
     SpvExecutionModel executionModel;
@@ -1591,11 +1592,15 @@ static SPIRVTranspileContext *SDL_ShaderCross_INTERNAL_TranspileFromSPIRV(
         return NULL;
     }
 
-    /* Determine the "cleansed" entrypoint name (e.g. main -> main0 on MSL) */
-    cleansed_entrypoint = spvc_compiler_get_cleansed_entry_point_name(
-        compiler,
-        entrypoint,
-        spvc_compiler_get_execution_model(compiler));
+    if (backend == SPVC_BACKEND_MSL) {
+        // Metal doesn't allow a "main" entrypoint, so determine the "cleansed" entrypoint name (e.g. main -> main0 on MSL)
+        cleansed_entrypoint = spvc_compiler_get_cleansed_entry_point_name(
+            compiler,
+            entrypoint,
+            spvc_compiler_get_execution_model(compiler));
+    } else {
+        cleansed_entrypoint = entrypoint;
+    }
 
     transpileContext = SDL_malloc(sizeof(SPIRVTranspileContext));
     transpileContext->context = context;
