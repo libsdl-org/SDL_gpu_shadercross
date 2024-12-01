@@ -336,7 +336,8 @@ static void *SDL_ShaderCross_INTERNAL_CompileUsingDXC(
     Uint32 numDefines,
     SDL_ShaderCross_ShaderStage shaderStage,
     bool spirv,
-    size_t *size) // filled in with number of bytes of returned buffer
+    size_t *size, // filled in with number of bytes of returned buffer
+    bool debugInfoEnabled)
 {
 #ifdef SDL_SHADERCROSS_DXC
     DxcBuffer source;
@@ -459,6 +460,16 @@ static void *SDL_ShaderCross_INTERNAL_CompileUsingDXC(
         args[argCount++] = (LPCWSTR)L"-spirv";
     }
 
+    if (debugInfoEnabled) {
+        if (spirv) {
+            // https://github.com/microsoft/DirectXShaderCompiler/blob/main/docs/SPIR-V.rst#debugging
+            args[argCount++] = (LPCWSTR)L"-fspv-debug=vulkan-with-source";
+        } else { // DXIL
+            // https://github.com/microsoft/DirectXShaderCompiler/blob/main/docs/SourceLevelDebuggingHLSL.rst#command-line-options
+            args[argCount++] = (LPCWSTR)L"-Zi";
+        }
+    }
+
 #if defined(SDL_PLATFORM_XBOXONE) || defined(SDL_PLATFORM_XBOXSERIES)
     args[argCount++] = L"-D__XBOX_DISABLE_PRECOMPILE=1";
 #endif
@@ -547,7 +558,8 @@ void *SDL_ShaderCross_CompileDXILFromHLSL(
     char **defines,
     Uint32 numDefines,
     SDL_ShaderCross_ShaderStage shaderStage,
-    size_t *size)
+    size_t *size,
+    bool debugInfoEnabled)
 {
     // Roundtrip to SPIR-V to support things like Structured Buffers.
     size_t spirvSize;
@@ -558,7 +570,8 @@ void *SDL_ShaderCross_CompileDXILFromHLSL(
         defines,
         numDefines,
         shaderStage,
-        &spirvSize);
+        &spirvSize,
+        debugInfoEnabled);
 
     if (spirv == NULL) {
         return NULL;
@@ -583,7 +596,8 @@ void *SDL_ShaderCross_CompileDXILFromHLSL(
         numDefines,
         shaderStage,
         false,
-        size);
+        size,
+        debugInfoEnabled);
 }
 
 void *SDL_ShaderCross_CompileSPIRVFromHLSL(
@@ -593,7 +607,8 @@ void *SDL_ShaderCross_CompileSPIRVFromHLSL(
     char **defines,
     Uint32 numDefines,
     SDL_ShaderCross_ShaderStage shaderStage,
-    size_t *size)
+    size_t *size,
+    bool debugInfoEnabled)
 {
     return SDL_ShaderCross_INTERNAL_CompileUsingDXC(
         hlslSource,
@@ -603,7 +618,8 @@ void *SDL_ShaderCross_CompileSPIRVFromHLSL(
         numDefines,
         shaderStage,
         true,
-        size);
+        size,
+        debugInfoEnabled);
 }
 
 /* DXBC via FXC */
@@ -728,7 +744,8 @@ void *SDL_ShaderCross_INTERNAL_CompileDXBCFromHLSL(
     Uint32 numDefines,
     SDL_ShaderCross_ShaderStage shaderStage,
     bool enableRoundtrip,
-    size_t *size) // filled in with number of bytes of returned buffer
+    size_t *size, // filled in with number of bytes of returned buffer
+    bool debugInfoEnabled)
 {
     char *transpiledSource = NULL;
 
@@ -742,7 +759,8 @@ void *SDL_ShaderCross_INTERNAL_CompileDXBCFromHLSL(
             defines,
             numDefines,
             shaderStage,
-            &spirv_size);
+            &spirv_size,
+            debugInfoEnabled);
 
         if (spirv == NULL) {
             return NULL;
@@ -799,7 +817,8 @@ void *SDL_ShaderCross_CompileDXBCFromHLSL(
     char **defines,
     Uint32 numDefines,
     SDL_ShaderCross_ShaderStage shaderStage,
-    size_t *size) // filled in with number of bytes of returned buffer
+    size_t *size, // filled in with number of bytes of returned buffer
+    bool debugInfoEnabled)
 {
     return SDL_ShaderCross_INTERNAL_CompileDXBCFromHLSL(
         hlslSource,
@@ -809,7 +828,8 @@ void *SDL_ShaderCross_CompileDXBCFromHLSL(
         numDefines,
         shaderStage,
         true,
-        size);
+        size,
+        debugInfoEnabled);
 }
 
 static void *SDL_ShaderCross_INTERNAL_CreateShaderFromHLSL(
@@ -820,7 +840,8 @@ static void *SDL_ShaderCross_INTERNAL_CreateShaderFromHLSL(
     char **defines,
     Uint32 numDefines,
     SDL_ShaderCross_ShaderStage shaderStage,
-    SDL_ShaderCross_GraphicsShaderInfo *info)
+    SDL_ShaderCross_GraphicsShaderInfo *info,
+    bool debugInfoEnabled)
 {
     size_t bytecodeSize;
 
@@ -832,7 +853,8 @@ static void *SDL_ShaderCross_INTERNAL_CreateShaderFromHLSL(
         defines,
         numDefines,
         shaderStage,
-        &bytecodeSize);
+        &bytecodeSize,
+        debugInfoEnabled);
 
     if (spirv == NULL) {
         SDL_SetError("%s", "Failed to compile SPIR-V!");
@@ -868,7 +890,8 @@ SDL_GPUShader *SDL_ShaderCross_CompileGraphicsShaderFromHLSL(
     char **defines,
     Uint32 numDefines,
     SDL_GPUShaderStage graphicsShaderStage,
-    SDL_ShaderCross_GraphicsShaderInfo *info)
+    SDL_ShaderCross_GraphicsShaderInfo *info,
+    bool debugInfoEnabled)
 {
     return (SDL_GPUShader *)SDL_ShaderCross_INTERNAL_CreateShaderFromHLSL(
         device,
@@ -878,7 +901,8 @@ SDL_GPUShader *SDL_ShaderCross_CompileGraphicsShaderFromHLSL(
         defines,
         numDefines,
         (SDL_ShaderCross_ShaderStage)graphicsShaderStage,
-        (void *)info);
+        (void *)info,
+        debugInfoEnabled);
 }
 
 SDL_GPUComputePipeline *SDL_ShaderCross_CompileComputePipelineFromHLSL(
@@ -888,7 +912,8 @@ SDL_GPUComputePipeline *SDL_ShaderCross_CompileComputePipelineFromHLSL(
     const char *includeDir,
     char **defines,
     Uint32 numDefines,
-    SDL_ShaderCross_ComputePipelineInfo *info)
+    SDL_ShaderCross_ComputePipelineInfo *info,
+    bool debugInfoEnabled)
 {
     return (SDL_GPUComputePipeline *)SDL_ShaderCross_INTERNAL_CreateShaderFromHLSL(
         device,
@@ -898,7 +923,8 @@ SDL_GPUComputePipeline *SDL_ShaderCross_CompileComputePipelineFromHLSL(
         defines,
         numDefines,
         SDL_SHADERCROSS_SHADERSTAGE_COMPUTE,
-        (void *)info);
+        (void *)info,
+        debugInfoEnabled);
 }
 
 #include <spirv_cross_c.h>
@@ -1946,7 +1972,8 @@ static void *SDL_ShaderCross_INTERNAL_CompileFromSPIRV(
     const char *entrypoint,
     SDL_ShaderCross_ShaderStage shaderStage,
     SDL_GPUShaderFormat targetFormat,
-    void *info
+    void *info,
+    bool debugInfoEnabled
 ) {
     spvc_backend backend;
     unsigned shadermodel = 0;
@@ -2007,7 +2034,8 @@ static void *SDL_ShaderCross_INTERNAL_CompileFromSPIRV(
                 0,
                 shaderStage,
                 false,
-                &createInfo.code_size);
+                &createInfo.code_size,
+                debugInfoEnabled);
         } else if (targetFormat == SDL_GPU_SHADERFORMAT_DXIL) {
             createInfo.code = SDL_ShaderCross_CompileDXILFromHLSL(
                 transpileContext->translated_source,
@@ -2016,7 +2044,8 @@ static void *SDL_ShaderCross_INTERNAL_CompileFromSPIRV(
                 NULL,
                 0,
                 shaderStage,
-                &createInfo.code_size);
+                &createInfo.code_size,
+                debugInfoEnabled);
         } else { // MSL
             createInfo.code = (const Uint8 *)transpileContext->translated_source;
             createInfo.code_size = SDL_strlen(transpileContext->translated_source) + 1;
@@ -2048,7 +2077,8 @@ static void *SDL_ShaderCross_INTERNAL_CompileFromSPIRV(
                 0,
                 shaderStage,
                 false,
-                &createInfo.code_size);
+                &createInfo.code_size,
+                debugInfoEnabled);
         } else if (targetFormat == SDL_GPU_SHADERFORMAT_DXIL) {
             createInfo.code = SDL_ShaderCross_CompileDXILFromHLSL(
                 transpileContext->translated_source,
@@ -2057,7 +2087,8 @@ static void *SDL_ShaderCross_INTERNAL_CompileFromSPIRV(
                 NULL,
                 0,
                 shaderStage,
-                &createInfo.code_size);
+                &createInfo.code_size,
+                debugInfoEnabled);
         } else { // MSL
             createInfo.code = (const Uint8 *)transpileContext->translated_source;
             createInfo.code_size = SDL_strlen(transpileContext->translated_source) + 1;
@@ -2129,7 +2160,8 @@ void *SDL_ShaderCross_CompileDXBCFromSPIRV(
     size_t bytecodeSize,
     const char *entrypoint,
     SDL_ShaderCross_ShaderStage shaderStage,
-    size_t *size)
+    size_t *size,
+    bool debugInfoEnabled)
 {
     SPIRVTranspileContext *context = SDL_ShaderCross_INTERNAL_TranspileFromSPIRV(
         SPVC_BACKEND_HLSL,
@@ -2151,7 +2183,8 @@ void *SDL_ShaderCross_CompileDXBCFromSPIRV(
         0,
         shaderStage,
         false,
-        size);
+        size,
+        debugInfoEnabled);
 
     SDL_ShaderCross_INTERNAL_DestroyTranspileContext(context);
     return result;
@@ -2162,7 +2195,8 @@ void *SDL_ShaderCross_CompileDXILFromSPIRV(
     size_t bytecodeSize,
     const char *entrypoint,
     SDL_ShaderCross_ShaderStage shaderStage,
-    size_t *size)
+    size_t *size,
+    bool debugInfoEnabled)
 {
 #ifndef SDL_SHADERCROSS_DXC
     SDL_SetError("%s", "Shadercross was not compiled with DXC support, cannot compile to SPIR-V!");
@@ -2188,7 +2222,8 @@ void *SDL_ShaderCross_CompileDXILFromSPIRV(
         NULL,
         0,
         shaderStage,
-        size);
+        size,
+        debugInfoEnabled);
 
     SDL_ShaderCross_INTERNAL_DestroyTranspileContext(context);
     return result;
@@ -2200,7 +2235,8 @@ static void *SDL_ShaderCross_INTERNAL_CreateShaderFromSPIRV(
     size_t bytecodeSize,
     const char *entrypoint,
     SDL_ShaderCross_ShaderStage shaderStage,
-    void *info)
+    void *info,
+    bool debugInfoEnabled)
 {
     SDL_GPUShaderFormat format;
 
@@ -2272,7 +2308,8 @@ static void *SDL_ShaderCross_INTERNAL_CreateShaderFromSPIRV(
         entrypoint,
         shaderStage,
         format,
-        info);
+        info,
+        debugInfoEnabled);
 }
 
 SDL_GPUShader *SDL_ShaderCross_CompileGraphicsShaderFromSPIRV(
@@ -2281,7 +2318,8 @@ SDL_GPUShader *SDL_ShaderCross_CompileGraphicsShaderFromSPIRV(
     size_t bytecodeSize,
     const char *entrypoint,
     SDL_GPUShaderStage shaderStage,
-    SDL_ShaderCross_GraphicsShaderInfo *info)
+    SDL_ShaderCross_GraphicsShaderInfo *info,
+    bool debugInfoEnabled)
 {
     return (SDL_GPUShader *)SDL_ShaderCross_INTERNAL_CreateShaderFromSPIRV(
         device,
@@ -2289,7 +2327,8 @@ SDL_GPUShader *SDL_ShaderCross_CompileGraphicsShaderFromSPIRV(
         bytecodeSize,
         entrypoint,
         (SDL_ShaderCross_ShaderStage)shaderStage,
-        info);
+        info,
+        debugInfoEnabled);
 }
 
 SDL_GPUComputePipeline *SDL_ShaderCross_CompileComputePipelineFromSPIRV(
@@ -2297,7 +2336,8 @@ SDL_GPUComputePipeline *SDL_ShaderCross_CompileComputePipelineFromSPIRV(
     const Uint8 *bytecode,
     size_t bytecodeSize,
     const char *entrypoint,
-    SDL_ShaderCross_ComputePipelineInfo *info)
+    SDL_ShaderCross_ComputePipelineInfo *info,
+    bool debugInfoEnabled)
 {
     return (SDL_GPUComputePipeline *)SDL_ShaderCross_INTERNAL_CreateShaderFromSPIRV(
         device,
@@ -2305,7 +2345,8 @@ SDL_GPUComputePipeline *SDL_ShaderCross_CompileComputePipelineFromSPIRV(
         bytecodeSize,
         entrypoint,
         SDL_SHADERCROSS_SHADERSTAGE_COMPUTE,
-        info);
+        info,
+        debugInfoEnabled);
 }
 
 bool SDL_ShaderCross_Init(void)

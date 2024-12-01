@@ -47,6 +47,7 @@ void print_help(void)
     SDL_Log("Optional options:\n");
     SDL_Log("  %-*s %s", column_width, "-I | --include <value>", "HLSL include directory. Only used with HLSL source.");
     SDL_Log("  %-*s %s", column_width, "-D<value>", "HLSL define. Only used with HLSL source. Can be repeated.");
+    SDL_Log("  %-*s %s", column_width, "--debuginfo", "Generate HLSL debugging information. Only used with HLSL source.");
 }
 
 void write_graphics_reflect_json(SDL_IOStream *outputIO, SDL_ShaderCross_GraphicsShaderInfo *info)
@@ -98,6 +99,8 @@ int main(int argc, char *argv[])
 
     Uint32 numDefines = 0;
     char **defines = NULL;
+
+    bool debugInfo = false;
 
     for (int i = 1; i < argc; i += 1) {
         char *arg = argv[i];
@@ -208,6 +211,8 @@ int main(int argc, char *argv[])
                 numDefines += 1;
                 defines = SDL_realloc(defines, sizeof(char *) * numDefines);
                 defines[numDefines - 1] = argv[i];
+            } else if (strncmp(argv[i], "--debuginfo", strlen("--debuginfo")) == 0) {
+                debugInfo = true;
             } else if (SDL_strcmp(arg, "--") == 0) {
                 accept_optionals = false;
             } else {
@@ -309,7 +314,8 @@ int main(int argc, char *argv[])
                     fileSize,
                     entrypointName,
                     shaderStage,
-                    &bytecodeSize);
+                    &bytecodeSize,
+                    debugInfo);
                 if (buffer == NULL) {
                     SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to compile DXBC from SPIR-V: %s", SDL_GetError());
                     result = 1;
@@ -326,7 +332,8 @@ int main(int argc, char *argv[])
                     fileSize,
                     entrypointName,
                     shaderStage,
-                    &bytecodeSize);
+                    &bytecodeSize,
+                    debugInfo);
                 if (buffer == NULL) {
                     SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to compile DXIL from SPIR-V: %s", SDL_GetError());
                     result = 1;
@@ -418,7 +425,8 @@ int main(int argc, char *argv[])
                     defines,
                     numDefines,
                     shaderStage,
-                    &bytecodeSize);
+                    &bytecodeSize,
+                    debugInfo);
                 if (buffer == NULL) {
                     SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to compile DXBC from HLSL: %s", SDL_GetError());
                     result = 1;
@@ -437,7 +445,8 @@ int main(int argc, char *argv[])
                     defines,
                     numDefines,
                     shaderStage,
-                    &bytecodeSize);
+                    &bytecodeSize,
+                    debugInfo);
                 if (buffer == NULL) {
                     SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to compile DXIL from HLSL: %s", SDL_GetError());
                     result = 1;
@@ -457,7 +466,8 @@ int main(int argc, char *argv[])
                     defines,
                     numDefines,
                     shaderStage,
-                    &bytecodeSize);
+                    &bytecodeSize,
+                    debugInfo);
                 if (spirv == NULL) {
                     SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to transpile MSL from HLSL: %s", SDL_GetError());
                     result = 1;
@@ -487,7 +497,8 @@ int main(int argc, char *argv[])
                     defines,
                     numDefines,
                     shaderStage,
-                    &bytecodeSize);
+                    &bytecodeSize,
+                    debugInfo);
                 if (buffer == NULL) {
                     SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to compile SPIR-V From HLSL: %s", SDL_GetError());
                     result = 1;
@@ -506,7 +517,8 @@ int main(int argc, char *argv[])
                     defines,
                     numDefines,
                     shaderStage,
-                    &bytecodeSize);
+                    &bytecodeSize,
+                    debugInfo);
 
                 if (spirv == NULL) {
                     SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to compile HLSL to SPIRV: %s", SDL_GetError());
@@ -540,7 +552,8 @@ int main(int argc, char *argv[])
                     defines,
                     numDefines,
                     shaderStage,
-                    &bytecodeSize);
+                    &bytecodeSize,
+                    debugInfo);
 
                 if (spirv == NULL) {
                     SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to compile HLSL to SPIRV: %s", SDL_GetError());
