@@ -835,7 +835,7 @@ static void *SDL_ShaderCross_INTERNAL_CreateShaderFromHLSL(
         &bytecodeSize);
 
     if (spirv == NULL) {
-        SDL_SetError("%s", "Failed to compile SPIR-V!");
+        // Error output from DXC will have already been set
         return NULL;
     }
 
