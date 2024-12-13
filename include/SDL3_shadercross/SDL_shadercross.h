@@ -137,7 +137,8 @@ extern SDL_DECLSPEC void * SDLCALL SDL_ShaderCross_CompileDXBCFromSPIRV(
     size_t bytecodeSize,
     const char *entrypoint,
     SDL_ShaderCross_ShaderStage shaderStage,
-    size_t *size);
+    size_t *size,
+    bool debugInfoEnabled);
 
 /**
  * Compile DXIL bytecode from SPIRV code.
@@ -155,7 +156,8 @@ extern SDL_DECLSPEC void * SDLCALL SDL_ShaderCross_CompileDXILFromSPIRV(
     size_t bytecodeSize,
     const char *entrypoint,
     SDL_ShaderCross_ShaderStage shaderStage,
-    size_t *size);
+    size_t *size,
+    bool debugInfoEnabled);
 
 /**
  * Compile an SDL GPU shader from SPIRV code.
@@ -255,7 +257,8 @@ extern SDL_DECLSPEC void * SDLCALL SDL_ShaderCross_CompileDXBCFromHLSL(
     char **defines,
     Uint32 numDefines,
     SDL_ShaderCross_ShaderStage shaderStage,
-    size_t *size);
+    size_t *size,
+    bool debugInfoEnabled);
 
 /**
  * Compile to DXIL bytecode from HLSL code via a SPIRV-Cross round trip.
@@ -280,7 +283,8 @@ extern SDL_DECLSPEC void * SDLCALL SDL_ShaderCross_CompileDXILFromHLSL(
     char **defines,
     Uint32 numDefines,
     SDL_ShaderCross_ShaderStage shaderStage,
-    size_t *size);
+    size_t *size,
+    bool debugInfoEnabled);
 
 /**
  * Compile to SPIRV bytecode from HLSL code.
@@ -305,7 +309,8 @@ extern SDL_DECLSPEC void * SDLCALL SDL_ShaderCross_CompileSPIRVFromHLSL(
     char **defines,
     Uint32 numDefines,
     SDL_ShaderCross_ShaderStage shaderStage,
-    size_t *size);
+    size_t *size,
+    bool debugInfoEnabled);
 
 /**
  * Compile an SDL GPU shader from HLSL code.
@@ -330,7 +335,8 @@ extern SDL_DECLSPEC SDL_GPUShader * SDLCALL SDL_ShaderCross_CompileGraphicsShade
     char **defines,
     Uint32 numDefines,
     SDL_GPUShaderStage graphicsShaderStage,
-    SDL_ShaderCross_GraphicsShaderInfo *info);
+    SDL_ShaderCross_GraphicsShaderInfo *info,
+    bool debugInfoEnabled);
 
 /**
  * Compile an SDL GPU compute pipeline from code.
@@ -353,7 +359,8 @@ extern SDL_DECLSPEC SDL_GPUComputePipeline * SDLCALL SDL_ShaderCross_CompileComp
     const char *includeDir,
     char **defines,
     Uint32 numDefines,
-    SDL_ShaderCross_ComputePipelineInfo *info);
+    SDL_ShaderCross_ComputePipelineInfo *info,
+    bool debugInfoEnabled);
 
 #ifdef __cplusplus
 }
