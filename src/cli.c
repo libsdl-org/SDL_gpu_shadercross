@@ -47,9 +47,10 @@ void print_help(void)
     SDL_Log("Optional options:\n");
     SDL_Log("  %-*s %s", column_width, "-I | --include <value>", "HLSL include directory. Only used with HLSL source.");
     SDL_Log("  %-*s %s", column_width, "-D<value>", "HLSL define. Only used with HLSL source. Can be repeated.");
+    SDL_Log("  %-*s %s", column_width, "-g | --debug", "Generate debug information when possible.");
 }
 
-void write_graphics_reflect_json(SDL_IOStream *outputIO, SDL_ShaderCross_GraphicsShaderInfo *info)
+void write_graphics_reflect_json(SDL_IOStream *outputIO, SDL_ShaderCross_GraphicsShaderMetadata *info)
 {
     SDL_IOprintf(
         outputIO,
@@ -61,7 +62,7 @@ void write_graphics_reflect_json(SDL_IOStream *outputIO, SDL_ShaderCross_Graphic
     );
 }
 
-void write_compute_reflect_json(SDL_IOStream *outputIO, SDL_ShaderCross_ComputePipelineInfo *info)
+void write_compute_reflect_json(SDL_IOStream *outputIO, SDL_ShaderCross_ComputePipelineMetadata *info)
 {
     SDL_IOprintf(
         outputIO,
@@ -98,6 +99,8 @@ int main(int argc, char *argv[])
 
     Uint32 numDefines = 0;
     char **defines = NULL;
+
+    bool enableDebug = false;
 
     for (int i = 1; i < argc; i += 1) {
         char *arg = argv[i];
@@ -208,6 +211,8 @@ int main(int argc, char *argv[])
                 numDefines += 1;
                 defines = SDL_realloc(defines, sizeof(char *) * numDefines);
                 defines[numDefines - 1] = argv[i];
+            } else if (SDL_strcmp(argv[i], "-g") == 0 || SDL_strcmp(arg, "--debug") == 0) {
+                enableDebug = true;
             } else if (SDL_strcmp(arg, "--") == 0) {
                 accept_optionals = false;
             } else {
@@ -302,13 +307,18 @@ int main(int argc, char *argv[])
     int result = 0;
 
     if (spirvSource) {
+        SDL_ShaderCross_SPIRV_Info spirvInfo;
+        spirvInfo.bytecode = fileData;
+        spirvInfo.bytecodeSize = fileSize;
+        spirvInfo.entrypoint = entrypointName;
+        spirvInfo.shaderStage = shaderStage;
+        spirvInfo.enableDebug = enableDebug;
+        spirvInfo.props = 0;
+
         switch (destinationFormat) {
             case SHADERFORMAT_DXBC: {
                 Uint8 *buffer = SDL_ShaderCross_CompileDXBCFromSPIRV(
-                    fileData,
-                    fileSize,
-                    entrypointName,
-                    shaderStage,
+                    &spirvInfo,
                     &bytecodeSize);
                 if (buffer == NULL) {
                     SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to compile DXBC from SPIR-V: %s", SDL_GetError());
@@ -322,10 +332,7 @@ int main(int argc, char *argv[])
 
             case SHADERFORMAT_DXIL: {
                 Uint8 *buffer = SDL_ShaderCross_CompileDXILFromSPIRV(
-                    fileData,
-                    fileSize,
-                    entrypointName,
-                    shaderStage,
+                    &spirvInfo,
                     &bytecodeSize);
                 if (buffer == NULL) {
                     SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to compile DXIL from SPIR-V: %s", SDL_GetError());
@@ -339,10 +346,7 @@ int main(int argc, char *argv[])
 
             case SHADERFORMAT_MSL: {
                 char *buffer = SDL_ShaderCross_TranspileMSLFromSPIRV(
-                    fileData,
-                    fileSize,
-                    entrypointName,
-                    shaderStage);
+                    &spirvInfo);
                 if (buffer == NULL) {
                     SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to transpile MSL from SPIR-V: %s", SDL_GetError());
                     result = 1;
@@ -355,10 +359,7 @@ int main(int argc, char *argv[])
 
             case SHADERFORMAT_HLSL: {
                 char *buffer = SDL_ShaderCross_TranspileHLSLFromSPIRV(
-                    fileData,
-                    fileSize,
-                    entrypointName,
-                    shaderStage);
+                    &spirvInfo);
                 if (buffer == NULL) {
                     SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to transpile HLSL from SPIRV: %s", SDL_GetError());
                     result = 1;
@@ -377,7 +378,7 @@ int main(int argc, char *argv[])
 
             case SHADERFORMAT_JSON: {
                 if (shaderStage == SDL_SHADERCROSS_SHADERSTAGE_COMPUTE) {
-                    SDL_ShaderCross_ComputePipelineInfo info;
+                    SDL_ShaderCross_ComputePipelineMetadata info;
                     if (SDL_ShaderCross_ReflectComputeSPIRV(
                         fileData,
                         fileSize,
@@ -388,7 +389,7 @@ int main(int argc, char *argv[])
                         result = 1;
                     }
                 } else {
-                    SDL_ShaderCross_GraphicsShaderInfo info;
+                    SDL_ShaderCross_GraphicsShaderMetadata info;
                     if (SDL_ShaderCross_ReflectGraphicsSPIRV(
                         fileData,
                         fileSize,
@@ -409,15 +410,20 @@ int main(int argc, char *argv[])
             }
         }
     } else {
+        SDL_ShaderCross_HLSL_Info hlslInfo;
+        hlslInfo.hlslSource = fileData;
+        hlslInfo.entrypoint = entrypointName;
+        hlslInfo.includeDir = includeDir;
+        hlslInfo.defines = defines;
+        hlslInfo.numDefines = numDefines;
+        hlslInfo.shaderStage = shaderStage;
+        hlslInfo.enableDebug = enableDebug;
+        hlslInfo.props = 0;
+
         switch (destinationFormat) {
             case SHADERFORMAT_DXBC: {
                 Uint8 *buffer = SDL_ShaderCross_CompileDXBCFromHLSL(
-                    fileData,
-                    entrypointName,
-                    includeDir,
-                    defines,
-                    numDefines,
-                    shaderStage,
+                    &hlslInfo,
                     &bytecodeSize);
                 if (buffer == NULL) {
                     SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to compile DXBC from HLSL: %s", SDL_GetError());
@@ -431,12 +437,7 @@ int main(int argc, char *argv[])
 
             case SHADERFORMAT_DXIL: {
                 Uint8 *buffer = SDL_ShaderCross_CompileDXILFromHLSL(
-                    fileData,
-                    entrypointName,
-                    includeDir,
-                    defines,
-                    numDefines,
-                    shaderStage,
+                    &hlslInfo,
                     &bytecodeSize);
                 if (buffer == NULL) {
                     SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to compile DXIL from HLSL: %s", SDL_GetError());
@@ -451,22 +452,21 @@ int main(int argc, char *argv[])
             // TODO: Should we have TranspileMSLFromHLSL?
             case SHADERFORMAT_MSL: {
                 void *spirv = SDL_ShaderCross_CompileSPIRVFromHLSL(
-                    fileData,
-                    entrypointName,
-                    includeDir,
-                    defines,
-                    numDefines,
-                    shaderStage,
+                    &hlslInfo,
                     &bytecodeSize);
                 if (spirv == NULL) {
                     SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to transpile MSL from HLSL: %s", SDL_GetError());
                     result = 1;
                 } else {
+                    SDL_ShaderCross_SPIRV_Info spirvInfo;
+                    spirvInfo.bytecode = spirv;
+                    spirvInfo.bytecodeSize = bytecodeSize;
+                    spirvInfo.entrypoint = entrypointName;
+                    spirvInfo.shaderStage = shaderStage;
+                    spirvInfo.enableDebug = enableDebug;
+                    spirvInfo.props = 0;
                     char *buffer = SDL_ShaderCross_TranspileMSLFromSPIRV(
-                        spirv,
-                        bytecodeSize,
-                        entrypointName,
-                        shaderStage);
+                        &spirvInfo);
                     if (buffer == NULL) {
                         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to transpile MSL from HLSL: %s", SDL_GetError());
                         result = 1;
@@ -481,12 +481,7 @@ int main(int argc, char *argv[])
 
             case SHADERFORMAT_SPIRV: {
                 Uint8 *buffer = SDL_ShaderCross_CompileSPIRVFromHLSL(
-                    fileData,
-                    entrypointName,
-                    includeDir,
-                    defines,
-                    numDefines,
-                    shaderStage,
+                    &hlslInfo,
                     &bytecodeSize);
                 if (buffer == NULL) {
                     SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to compile SPIR-V From HLSL: %s", SDL_GetError());
@@ -500,12 +495,7 @@ int main(int argc, char *argv[])
 
             case SHADERFORMAT_HLSL: {
                 void *spirv = SDL_ShaderCross_CompileSPIRVFromHLSL(
-                    fileData,
-                    entrypointName,
-                    includeDir,
-                    defines,
-                    numDefines,
-                    shaderStage,
+                    &hlslInfo,
                     &bytecodeSize);
 
                 if (spirv == NULL) {
@@ -514,11 +504,16 @@ int main(int argc, char *argv[])
                     break;
                 }
 
+                SDL_ShaderCross_SPIRV_Info spirvInfo;
+                spirvInfo.bytecode = spirv;
+                spirvInfo.bytecodeSize = bytecodeSize;
+                spirvInfo.entrypoint = entrypointName;
+                spirvInfo.shaderStage = shaderStage;
+                spirvInfo.enableDebug = enableDebug;
+                spirvInfo.props = 0;
+
                 char *buffer = SDL_ShaderCross_TranspileHLSLFromSPIRV(
-                    spirv,
-                    bytecodeSize,
-                    entrypointName,
-                    shaderStage);
+                    &spirvInfo);
 
                 if (buffer == NULL) {
                     SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to transpile HLSL from SPIRV: %s", SDL_GetError());
@@ -534,12 +529,7 @@ int main(int argc, char *argv[])
 
             case SHADERFORMAT_JSON: {
                 void *spirv = SDL_ShaderCross_CompileSPIRVFromHLSL(
-                    fileData,
-                    entrypointName,
-                    includeDir,
-                    defines,
-                    numDefines,
-                    shaderStage,
+                    &hlslInfo,
                     &bytecodeSize);
 
                 if (spirv == NULL) {
@@ -549,7 +539,7 @@ int main(int argc, char *argv[])
                 }
 
                 if (shaderStage == SDL_SHADERCROSS_SHADERSTAGE_COMPUTE) {
-                    SDL_ShaderCross_ComputePipelineInfo info;
+                    SDL_ShaderCross_ComputePipelineMetadata info;
                     bool result = SDL_ShaderCross_ReflectComputeSPIRV(
                         spirv,
                         bytecodeSize,
@@ -563,7 +553,7 @@ int main(int argc, char *argv[])
                         result = 1;
                     }
                 } else {
-                    SDL_ShaderCross_GraphicsShaderInfo info;
+                    SDL_ShaderCross_GraphicsShaderMetadata info;
                     bool result = SDL_ShaderCross_ReflectGraphicsSPIRV(
                         spirv,
                         bytecodeSize,
