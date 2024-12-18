@@ -1787,6 +1787,26 @@ bool SDL_ShaderCross_ReflectComputeSPIRV(
         return false;
     }
 
+    for (size_t i = 0; i < num_storage_textures; i += 1) {
+        if (!spvc_compiler_has_decoration(compiler, reflected_resources[i].id, SpvDecorationDescriptorSet) || !spvc_compiler_has_decoration(compiler, reflected_resources[i].id, SpvDecorationBinding)) {
+            SDL_SetError("%s", "Shader resources must have descriptor set and binding index!");
+            spvc_context_destroy(context);
+            return false;
+        }
+
+        unsigned int descriptor_set_index = spvc_compiler_get_decoration(compiler, reflected_resources[i].id, SpvDecorationDescriptorSet);
+
+        if (descriptor_set_index == 0) {
+            num_readonly_storage_textures += 1;
+        } else if (descriptor_set_index == 1) {
+            num_readwrite_storage_textures += 1;
+        } else {
+            SDL_SetError("%s", "Descriptor set index for compute storage texture must be 0 or 1!");
+            spvc_context_destroy(context);
+            return false;
+        }
+    }
+
     // If source is HLSL, readonly storage images might be marked as separate images
     result = spvc_resources_get_resource_list_for_type(
         resources,
@@ -1798,10 +1818,11 @@ bool SDL_ShaderCross_ReflectComputeSPIRV(
         spvc_context_destroy(context);
         return false;
     }
+
     // The number of storage textures is the number of separate images minus the number of samplers.
     num_storage_textures += (num_separate_images - num_separate_samplers);
 
-    for (size_t i = 0; i < num_storage_textures; i += 1) {
+    for (size_t i = num_separate_samplers; i < num_separate_images; i += 1) {
         if (!spvc_compiler_has_decoration(compiler, reflected_resources[i].id, SpvDecorationDescriptorSet) || !spvc_compiler_has_decoration(compiler, reflected_resources[i].id, SpvDecorationBinding)) {
             SDL_SetError("%s", "Shader resources must have descriptor set and binding index!");
             spvc_context_destroy(context);
