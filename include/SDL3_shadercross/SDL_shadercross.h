@@ -73,6 +73,7 @@ typedef struct SDL_ShaderCross_SPIRV_Info
     const char *entrypoint;                   /**< The entry point function name for the shader in UTF-8. */
     SDL_ShaderCross_ShaderStage shaderStage;  /**< The shader stage to transpile the shader with. */
     bool enableDebug;                         /**< Allows debug info to be emitted when relevant. Can be useful for graphics debuggers like RenderDoc. */
+    const char *name;                         /**< A UTF-8 name to associate with the shader. Optional, can be NULL. */
 
     SDL_PropertiesID props;                   /**< A properties ID for extensions. Should be 0 if no extensions are needed. */
 } SDL_ShaderCross_SPIRV_Info;
@@ -86,6 +87,7 @@ typedef struct SDL_ShaderCross_HLSL_Info
     Uint32 numDefines;                        /**< The number of strings in the defines array. */
     SDL_ShaderCross_ShaderStage shaderStage;  /**< The shader stage to compile the shader with. */
     bool enableDebug;                         /**< Allows debug info to be emitted when relevant. Can be useful for graphics debuggers like RenderDoc. */
+    const char *name;                         /**< A UTF-8 name to associate with the shader. Optional, can be NULL. */
 
     SDL_PropertiesID props;                   /**< A properties ID for extensions. Should be 0 if no extensions are needed. */
 } SDL_ShaderCross_HLSL_Info;

@@ -313,6 +313,7 @@ int main(int argc, char *argv[])
         spirvInfo.entrypoint = entrypointName;
         spirvInfo.shaderStage = shaderStage;
         spirvInfo.enableDebug = enableDebug;
+        spirvInfo.name = filename;
         spirvInfo.props = 0;
 
         switch (destinationFormat) {
@@ -418,6 +419,7 @@ int main(int argc, char *argv[])
         hlslInfo.numDefines = numDefines;
         hlslInfo.shaderStage = shaderStage;
         hlslInfo.enableDebug = enableDebug;
+        hlslInfo.name = filename;
         hlslInfo.props = 0;
 
         switch (destinationFormat) {

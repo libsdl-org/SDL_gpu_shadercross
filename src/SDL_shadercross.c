@@ -342,6 +342,7 @@ static void *SDL_ShaderCross_INTERNAL_CompileUsingDXC(
     wchar_t *entryPointUtf16 = NULL;
     size_t includeDirLength = 0;
     wchar_t *includeDirUtf16 = NULL;
+    wchar_t *nameUtf16 = NULL;
     HRESULT ret;
 
     /* Non-static DxcInstance, since the functions we call on it are not thread-safe */
@@ -402,7 +403,7 @@ static void *SDL_ShaderCross_INTERNAL_CompileUsingDXC(
         return NULL;
     }
 
-    LPCWSTR *args = SDL_malloc(sizeof(LPCWSTR) * (info->numDefines + 9));
+    LPCWSTR *args = SDL_malloc(sizeof(LPCWSTR) * (info->numDefines + 10));
     Uint32 argCount = 0;
 
     for (Uint32 i = 0; i < info->numDefines; i += 1) {
@@ -464,6 +465,13 @@ static void *SDL_ShaderCross_INTERNAL_CompileUsingDXC(
         }
     }
 
+    if (info->name) {
+        nameUtf16 = (wchar_t *)SDL_iconv_string("WCHAR_T", "UTF-8", info->name, SDL_utf8strlen(info->name) + 1);
+        if (nameUtf16 != NULL) {
+            args[argCount++] = nameUtf16; // a bare string inserted into the arguments is treated as the source file name
+        }
+    }
+
 #if defined(SDL_PLATFORM_XBOXONE) || defined(SDL_PLATFORM_XBOXSERIES)
     args[argCount++] = L"-D__XBOX_DISABLE_PRECOMPILE=1";
 #endif
@@ -480,6 +488,9 @@ static void *SDL_ShaderCross_INTERNAL_CompileUsingDXC(
     SDL_free(entryPointUtf16);
     if (includeDirUtf16 != NULL) {
         SDL_free(includeDirUtf16);
+    }
+    if (nameUtf16 != NULL) {
+        SDL_free(nameUtf16);
     }
 
     if (ret < 0) {
@@ -565,6 +576,7 @@ void *SDL_ShaderCross_CompileDXILFromHLSL(
     spirvInfo.entrypoint = info->entrypoint;
     spirvInfo.shaderStage = info->shaderStage;
     spirvInfo.enableDebug = info->enableDebug;
+    spirvInfo.name = info->name;
     spirvInfo.props = 0;
 
     void *translatedSource = SDL_ShaderCross_TranspileHLSLFromSPIRV(
@@ -735,6 +747,7 @@ void *SDL_ShaderCross_INTERNAL_CompileDXBCFromHLSL(
         spirvInfo.entrypoint = info->entrypoint;
         spirvInfo.shaderStage = info->shaderStage;
         spirvInfo.enableDebug = info->enableDebug;
+        spirvInfo.name = info->name;
         spirvInfo.props = 0;
 
         transpiledSource = SDL_ShaderCross_TranspileHLSLFromSPIRV(
@@ -812,6 +825,7 @@ static void *SDL_ShaderCross_INTERNAL_CreateShaderFromHLSL(
     spirvInfo.entrypoint = info->entrypoint;
     spirvInfo.shaderStage = info->shaderStage;
     spirvInfo.enableDebug = info->enableDebug;
+    spirvInfo.name = info->name;
     spirvInfo.props = 0;
 
     void *result;
@@ -1975,6 +1989,7 @@ static void *SDL_ShaderCross_INTERNAL_CompileFromSPIRV(
         hlslInfo.numDefines = 0;
         hlslInfo.enableDebug = info->enableDebug;
         hlslInfo.shaderStage = SDL_SHADERCROSS_SHADERSTAGE_COMPUTE;
+        hlslInfo.name = info->name;
         hlslInfo.props = 0;
 
         if (targetFormat == SDL_GPU_SHADERFORMAT_DXBC) {
@@ -2016,6 +2031,7 @@ static void *SDL_ShaderCross_INTERNAL_CompileFromSPIRV(
         hlslInfo.numDefines = 0;
         hlslInfo.enableDebug = info->enableDebug;
         hlslInfo.shaderStage = info->shaderStage;
+        hlslInfo.name = info->name;
         hlslInfo.props = 0;
 
         if (targetFormat == SDL_GPU_SHADERFORMAT_DXBC) {
@@ -2111,6 +2127,7 @@ void *SDL_ShaderCross_CompileDXBCFromSPIRV(
     hlslInfo.numDefines = 0;
     hlslInfo.shaderStage = info->shaderStage;
     hlslInfo.enableDebug = info->enableDebug;
+    hlslInfo.name = info->name;
     hlslInfo.props = 0;
 
     void *result = SDL_ShaderCross_INTERNAL_CompileDXBCFromHLSL(
@@ -2151,6 +2168,7 @@ void *SDL_ShaderCross_CompileDXILFromSPIRV(
     hlslInfo.numDefines = 0;
     hlslInfo.shaderStage = info->shaderStage;
     hlslInfo.enableDebug = info->enableDebug;
+    hlslInfo.name = info->name;
     hlslInfo.props = 0;
 
     void *result = SDL_ShaderCross_CompileDXILFromHLSL(
