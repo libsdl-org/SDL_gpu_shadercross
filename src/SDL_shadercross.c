@@ -457,7 +457,7 @@ static void *SDL_ShaderCross_INTERNAL_CompileUsingDXC(
     if (info->enableDebug) {
         if (spirv) {
             // https://github.com/microsoft/DirectXShaderCompiler/blob/main/docs/SPIR-V.rst#debugging
-            args[argCount++] = (LPCWSTR)L"-fpsv-debug=vulkan-with-source";
+            args[argCount++] = (LPCWSTR)L"-fspv-debug=vulkan-with-source";
         } else {
             // https://github.com/microsoft/DirectXShaderCompiler/blob/main/docs/SourceLevelDebuggingHLSL.rst#command-line-options
             args[argCount++] = (LPCWSTR)L"-Zi";
@@ -668,10 +668,12 @@ typedef HRESULT(__stdcall *pfn_D3DCompile)(
 
 static pfn_D3DCompile SDL_D3DCompile = NULL;
 
+// FIXME: includes and defines
 static ID3DBlob *SDL_ShaderCross_INTERNAL_CompileDXBC(
     const char *hlslSource,
     const char *entrypoint,
-    const char *shaderProfile)
+    const char *shaderProfile,
+    bool enableDebug)
 {
     ID3DBlob *blob;
     ID3DBlob *errorBlob;
@@ -690,7 +692,7 @@ static ID3DBlob *SDL_ShaderCross_INTERNAL_CompileDXBC(
         NULL,
         entrypoint,
         shaderProfile,
-        0,
+        enableDebug ? 1 : 0, // D3DCOMPILE_DEBUG = 1
         0,
         &blob,
         &errorBlob);
@@ -756,7 +758,8 @@ void *SDL_ShaderCross_INTERNAL_CompileDXBCFromHLSL(
     ID3DBlob *blob = SDL_ShaderCross_INTERNAL_CompileDXBC(
         transpiledSource != NULL ? transpiledSource : info->hlslSource,
         info->entrypoint,
-        shaderProfile);
+        shaderProfile,
+        info->enableDebug);
 
     if (blob == NULL) {
         *size = 0;
