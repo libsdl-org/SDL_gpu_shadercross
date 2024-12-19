@@ -403,10 +403,10 @@ static void *SDL_ShaderCross_INTERNAL_CompileUsingDXC(
         return NULL;
     }
 
-    LPCWSTR *args = SDL_malloc(sizeof(LPCWSTR) * (info->numDefines + 10));
+    LPCWSTR *args = SDL_malloc(sizeof(LPCWSTR) * (info->num_defines + 10));
     Uint32 argCount = 0;
 
-    for (Uint32 i = 0; i < info->numDefines; i += 1) {
+    for (Uint32 i = 0; i < info->num_defines; i += 1) {
         args[argCount++] = (wchar_t *)SDL_iconv_string("WCHAR_T", "UTF-8", info->defines[i], SDL_utf8strlen(info->defines[i]) + 1);
         if (args[argCount - 1] == NULL) {
             SDL_SetError("%s", "Failed to convert define argument to WCHAR_T!");
@@ -420,9 +420,9 @@ static void *SDL_ShaderCross_INTERNAL_CompileUsingDXC(
     args[argCount++] = (LPCWSTR)L"-E";
     args[argCount++] = (LPCWSTR)entryPointUtf16;
 
-    if (info->includeDir != NULL) {
-        includeDirLength = SDL_utf8strlen(info->includeDir) + 1;
-        includeDirUtf16 = (wchar_t *)SDL_iconv_string("WCHAR_T", "UTF-8", info->includeDir, includeDirLength);
+    if (info->include_dir != NULL) {
+        includeDirLength = SDL_utf8strlen(info->include_dir) + 1;
+        includeDirUtf16 = (wchar_t *)SDL_iconv_string("WCHAR_T", "UTF-8", info->include_dir, includeDirLength);
 
         if (includeDirUtf16 == NULL) {
             SDL_SetError("%s", "Failed to convert include dir to WCHAR_T!");
@@ -436,14 +436,14 @@ static void *SDL_ShaderCross_INTERNAL_CompileUsingDXC(
         argCount += 2;
     }
 
-    source.Ptr = info->hlslSource;
-    source.Size = SDL_strlen(info->hlslSource) + 1;
+    source.Ptr = info->source;
+    source.Size = SDL_strlen(info->source) + 1;
     source.Encoding = DXC_CP_ACP;
 
-    if (info->shaderStage == SDL_SHADERCROSS_SHADERSTAGE_VERTEX) {
+    if (info->shader_stage == SDL_SHADERCROSS_SHADERSTAGE_VERTEX) {
         args[argCount++] = (LPCWSTR)L"-T";
         args[argCount++] = (LPCWSTR)L"vs_6_0";
-    } else if (info->shaderStage == SDL_SHADERCROSS_SHADERSTAGE_FRAGMENT) {
+    } else if (info->shader_stage == SDL_SHADERCROSS_SHADERSTAGE_FRAGMENT) {
         args[argCount++] = (LPCWSTR)L"-T";
         args[argCount++] = (LPCWSTR)L"ps_6_0";
     } else { // compute
@@ -455,7 +455,7 @@ static void *SDL_ShaderCross_INTERNAL_CompileUsingDXC(
         args[argCount++] = (LPCWSTR)L"-spirv";
     }
 
-    if (info->enableDebug) {
+    if (info->enable_debug) {
         if (spirv) {
             // https://github.com/microsoft/DirectXShaderCompiler/blob/main/docs/SPIR-V.rst#debugging
             args[argCount++] = (LPCWSTR)L"-fspv-debug=vulkan-with-source";
@@ -544,7 +544,7 @@ static void *SDL_ShaderCross_INTERNAL_CompileUsingDXC(
     dxcInstance->lpVtbl->Release(dxcInstance);
     utils->lpVtbl->Release(utils);
 
-    for (Uint32 i = 0; i < info->numDefines; i += 1) {
+    for (Uint32 i = 0; i < info->num_defines; i += 1) {
         SDL_free(args[i]);
     }
     SDL_free(args);
@@ -572,10 +572,10 @@ void *SDL_ShaderCross_CompileDXILFromHLSL(
 
     SDL_ShaderCross_SPIRV_Info spirvInfo;
     spirvInfo.bytecode = spirv;
-    spirvInfo.bytecodeSize = spirvSize;
+    spirvInfo.bytecode_size = spirvSize;
     spirvInfo.entrypoint = info->entrypoint;
-    spirvInfo.shaderStage = info->shaderStage;
-    spirvInfo.enableDebug = info->enableDebug;
+    spirvInfo.shader_stage = info->shader_stage;
+    spirvInfo.enable_debug = info->enable_debug;
     spirvInfo.name = info->name;
     spirvInfo.props = 0;
 
@@ -589,7 +589,7 @@ void *SDL_ShaderCross_CompileDXILFromHLSL(
 
     SDL_ShaderCross_HLSL_Info translatedHlslInfo;
     SDL_memcpy(&translatedHlslInfo, info, sizeof(SDL_ShaderCross_HLSL_Info));
-    translatedHlslInfo.hlslSource = translatedSource;
+    translatedHlslInfo.source = translatedSource;
 
     return SDL_ShaderCross_INTERNAL_CompileUsingDXC(
         &translatedHlslInfo,
@@ -743,10 +743,10 @@ void *SDL_ShaderCross_INTERNAL_CompileDXBCFromHLSL(
 
         SDL_ShaderCross_SPIRV_Info spirvInfo;
         spirvInfo.bytecode = spirv;
-        spirvInfo.bytecodeSize = spirv_size;
+        spirvInfo.bytecode_size = spirv_size;
         spirvInfo.entrypoint = info->entrypoint;
-        spirvInfo.shaderStage = info->shaderStage;
-        spirvInfo.enableDebug = info->enableDebug;
+        spirvInfo.shader_stage = info->shader_stage;
+        spirvInfo.enable_debug = info->enable_debug;
         spirvInfo.name = info->name;
         spirvInfo.props = 0;
 
@@ -760,19 +760,19 @@ void *SDL_ShaderCross_INTERNAL_CompileDXBCFromHLSL(
     }
 
     const char *shaderProfile;
-    if (info->shaderStage == SDL_SHADERCROSS_SHADERSTAGE_VERTEX) {
+    if (info->shader_stage == SDL_SHADERCROSS_SHADERSTAGE_VERTEX) {
         shaderProfile = "vs_5_1";
-    } else if (info->shaderStage == SDL_SHADERCROSS_SHADERSTAGE_FRAGMENT) {
+    } else if (info->shader_stage == SDL_SHADERCROSS_SHADERSTAGE_FRAGMENT) {
         shaderProfile = "ps_5_1";
     } else { // compute
         shaderProfile = "cs_5_1";
     }
 
     ID3DBlob *blob = SDL_ShaderCross_INTERNAL_CompileDXBC(
-        transpiledSource != NULL ? transpiledSource : info->hlslSource,
+        transpiledSource != NULL ? transpiledSource : info->source,
         info->entrypoint,
         shaderProfile,
-        info->enableDebug);
+        info->enable_debug);
 
     if (blob == NULL) {
         *size = 0;
@@ -821,15 +821,15 @@ static void *SDL_ShaderCross_INTERNAL_CreateShaderFromHLSL(
 
     SDL_ShaderCross_SPIRV_Info spirvInfo;
     spirvInfo.bytecode = spirv;
-    spirvInfo.bytecodeSize = bytecodeSize;
+    spirvInfo.bytecode_size = bytecodeSize;
     spirvInfo.entrypoint = info->entrypoint;
-    spirvInfo.shaderStage = info->shaderStage;
-    spirvInfo.enableDebug = info->enableDebug;
+    spirvInfo.shader_stage = info->shader_stage;
+    spirvInfo.enable_debug = info->enable_debug;
     spirvInfo.name = info->name;
     spirvInfo.props = 0;
 
     void *result;
-    if (info->shaderStage == SDL_SHADERCROSS_SHADERSTAGE_COMPUTE) {
+    if (info->shader_stage == SDL_SHADERCROSS_SHADERSTAGE_COMPUTE) {
         result = SDL_ShaderCross_CompileComputePipelineFromSPIRV(
             device,
             &spirvInfo,
@@ -1704,10 +1704,10 @@ bool SDL_ShaderCross_ReflectGraphicsSPIRV(
 
     spvc_context_destroy(context);
 
-    metadata->numSamplers = num_texture_samplers;
-    metadata->numStorageTextures = num_storage_textures;
-    metadata->numStorageBuffers = num_storage_buffers;
-    metadata->numUniformBuffers = num_uniform_buffers;
+    metadata->num_samplers = num_texture_samplers;
+    metadata->num_storage_textures = num_storage_textures;
+    metadata->num_storage_buffers = num_storage_buffers;
+    metadata->num_uniform_buffers = num_uniform_buffers;
     return true;
 }
 
@@ -1910,18 +1910,18 @@ bool SDL_ShaderCross_ReflectComputeSPIRV(
     }
 
     // Threadcount
-    metadata->threadCountX = spvc_compiler_get_execution_mode_argument_by_index(compiler, SpvExecutionModeLocalSize, 0);
-    metadata->threadCountY = spvc_compiler_get_execution_mode_argument_by_index(compiler, SpvExecutionModeLocalSize, 1);
-    metadata->threadCountZ = spvc_compiler_get_execution_mode_argument_by_index(compiler, SpvExecutionModeLocalSize, 2);
+    metadata->threadcount_x = spvc_compiler_get_execution_mode_argument_by_index(compiler, SpvExecutionModeLocalSize, 0);
+    metadata->threadcount_y = spvc_compiler_get_execution_mode_argument_by_index(compiler, SpvExecutionModeLocalSize, 1);
+    metadata->threadcount_z = spvc_compiler_get_execution_mode_argument_by_index(compiler, SpvExecutionModeLocalSize, 2);
 
     spvc_context_destroy(context);
 
-    metadata->numSamplers = num_texture_samplers;
-    metadata->numReadOnlyStorageTextures = num_readonly_storage_textures;
-    metadata->numReadOnlyStorageBuffers = num_readonly_storage_buffers;
-    metadata->numReadWriteStorageTextures = num_readwrite_storage_textures;
-    metadata->numReadWriteStorageBuffers = num_readwrite_storage_buffers;
-    metadata->numUniformBuffers = num_uniform_buffers;
+    metadata->num_samplers = num_texture_samplers;
+    metadata->num_readonly_storage_textures = num_readonly_storage_textures;
+    metadata->num_readonly_storage_buffers = num_readonly_storage_buffers;
+    metadata->num_readwrite_storage_textures = num_readwrite_storage_textures;
+    metadata->num_readwrite_storage_buffers = num_readwrite_storage_buffers;
+    metadata->num_uniform_buffers = num_uniform_buffers;
     return true;
 }
 
@@ -1950,9 +1950,9 @@ static void *SDL_ShaderCross_INTERNAL_CompileFromSPIRV(
     SPIRVTranspileContext *transpileContext = SDL_ShaderCross_INTERNAL_TranspileFromSPIRV(
         backend,
         shadermodel,
-        info->shaderStage,
+        info->shader_stage,
         info->bytecode,
-        info->bytecodeSize,
+        info->bytecode_size,
         info->entrypoint);
 
     if (transpileContext == NULL) {
@@ -1961,34 +1961,34 @@ static void *SDL_ShaderCross_INTERNAL_CompileFromSPIRV(
 
     void *shaderObject = NULL;
 
-    if (info->shaderStage == SDL_SHADERCROSS_SHADERSTAGE_COMPUTE) {
+    if (info->shader_stage == SDL_SHADERCROSS_SHADERSTAGE_COMPUTE) {
         SDL_GPUComputePipelineCreateInfo createInfo;
         SDL_ShaderCross_ComputePipelineMetadata *pipelineInfo = (SDL_ShaderCross_ComputePipelineMetadata *)metadata;
         SDL_ShaderCross_ReflectComputeSPIRV(
             info->bytecode,
-            info->bytecodeSize,
+            info->bytecode_size,
             pipelineInfo);
         createInfo.entrypoint = transpileContext->cleansed_entrypoint;
         createInfo.format = targetFormat;
         createInfo.props = 0;
-        createInfo.num_samplers = pipelineInfo->numSamplers;
-        createInfo.num_readonly_storage_textures = pipelineInfo->numReadOnlyStorageTextures;
-        createInfo.num_readonly_storage_buffers = pipelineInfo->numReadOnlyStorageBuffers;
-        createInfo.num_readwrite_storage_textures = pipelineInfo->numReadWriteStorageTextures;
-        createInfo.num_readwrite_storage_buffers = pipelineInfo->numReadWriteStorageBuffers;
-        createInfo.num_uniform_buffers = pipelineInfo->numUniformBuffers;
-        createInfo.threadcount_x = pipelineInfo->threadCountX;
-        createInfo.threadcount_y = pipelineInfo->threadCountY;
-        createInfo.threadcount_z = pipelineInfo->threadCountZ;
+        createInfo.num_samplers = pipelineInfo->num_samplers;
+        createInfo.num_readonly_storage_textures = pipelineInfo->num_readonly_storage_textures;
+        createInfo.num_readonly_storage_buffers = pipelineInfo->num_readonly_storage_buffers;
+        createInfo.num_readwrite_storage_textures = pipelineInfo->num_readwrite_storage_textures;
+        createInfo.num_readwrite_storage_buffers = pipelineInfo->num_readwrite_storage_buffers;
+        createInfo.num_uniform_buffers = pipelineInfo->num_uniform_buffers;
+        createInfo.threadcount_x = pipelineInfo->threadcount_x;
+        createInfo.threadcount_y = pipelineInfo->threadcount_y;
+        createInfo.threadcount_z = pipelineInfo->threadcount_z;
 
         SDL_ShaderCross_HLSL_Info hlslInfo;
-        hlslInfo.hlslSource = transpileContext->translated_source;
+        hlslInfo.source = transpileContext->translated_source;
         hlslInfo.entrypoint = transpileContext->cleansed_entrypoint;
-        hlslInfo.includeDir = NULL;
+        hlslInfo.include_dir = NULL;
         hlslInfo.defines = NULL;
-        hlslInfo.numDefines = 0;
-        hlslInfo.enableDebug = info->enableDebug;
-        hlslInfo.shaderStage = SDL_SHADERCROSS_SHADERSTAGE_COMPUTE;
+        hlslInfo.num_defines = 0;
+        hlslInfo.enable_debug = info->enable_debug;
+        hlslInfo.shader_stage = SDL_SHADERCROSS_SHADERSTAGE_COMPUTE;
         hlslInfo.name = info->name;
         hlslInfo.props = 0;
 
@@ -2012,25 +2012,25 @@ static void *SDL_ShaderCross_INTERNAL_CompileFromSPIRV(
         SDL_ShaderCross_GraphicsShaderMetadata *shaderInfo = (SDL_ShaderCross_GraphicsShaderMetadata *)metadata;
         SDL_ShaderCross_ReflectGraphicsSPIRV(
             info->bytecode,
-            info->bytecodeSize,
+            info->bytecode_size,
             shaderInfo);
         createInfo.entrypoint = transpileContext->cleansed_entrypoint;
         createInfo.format = targetFormat;
-        createInfo.stage = (SDL_GPUShaderStage)info->shaderStage;
+        createInfo.stage = (SDL_GPUShaderStage)info->shader_stage;
         createInfo.props = 0;
-        createInfo.num_samplers = shaderInfo->numSamplers;
-        createInfo.num_storage_textures = shaderInfo->numStorageTextures;
-        createInfo.num_storage_buffers = shaderInfo->numStorageBuffers;
-        createInfo.num_uniform_buffers = shaderInfo->numUniformBuffers;
+        createInfo.num_samplers = shaderInfo->num_samplers;
+        createInfo.num_storage_textures = shaderInfo->num_storage_textures;
+        createInfo.num_storage_buffers = shaderInfo->num_storage_buffers;
+        createInfo.num_uniform_buffers = shaderInfo->num_uniform_buffers;
 
         SDL_ShaderCross_HLSL_Info hlslInfo;
-        hlslInfo.hlslSource = transpileContext->translated_source;
+        hlslInfo.source = transpileContext->translated_source;
         hlslInfo.entrypoint = transpileContext->cleansed_entrypoint;
-        hlslInfo.includeDir = NULL;
+        hlslInfo.include_dir = NULL;
         hlslInfo.defines = NULL;
-        hlslInfo.numDefines = 0;
-        hlslInfo.enableDebug = info->enableDebug;
-        hlslInfo.shaderStage = info->shaderStage;
+        hlslInfo.num_defines = 0;
+        hlslInfo.enable_debug = info->enable_debug;
+        hlslInfo.shader_stage = info->shader_stage;
         hlslInfo.name = info->name;
         hlslInfo.props = 0;
 
@@ -2061,9 +2061,9 @@ void *SDL_ShaderCross_TranspileMSLFromSPIRV(
     SPIRVTranspileContext *context = SDL_ShaderCross_INTERNAL_TranspileFromSPIRV(
         SPVC_BACKEND_MSL,
         0,
-        info->shaderStage,
+        info->shader_stage,
         info->bytecode,
-        info->bytecodeSize,
+        info->bytecode_size,
         info->entrypoint
     );
 
@@ -2085,9 +2085,9 @@ void *SDL_ShaderCross_TranspileHLSLFromSPIRV(
     SPIRVTranspileContext *context = SDL_ShaderCross_INTERNAL_TranspileFromSPIRV(
         SPVC_BACKEND_HLSL,
         60,
-        info->shaderStage,
+        info->shader_stage,
         info->bytecode,
-        info->bytecodeSize,
+        info->bytecode_size,
         info->entrypoint
     );
 
@@ -2110,9 +2110,9 @@ void *SDL_ShaderCross_CompileDXBCFromSPIRV(
     SPIRVTranspileContext *context = SDL_ShaderCross_INTERNAL_TranspileFromSPIRV(
         SPVC_BACKEND_HLSL,
         51,
-        info->shaderStage,
+        info->shader_stage,
         info->bytecode,
-        info->bytecodeSize,
+        info->bytecode_size,
         info->entrypoint);
 
     if (context == NULL) {
@@ -2120,13 +2120,13 @@ void *SDL_ShaderCross_CompileDXBCFromSPIRV(
     }
 
     SDL_ShaderCross_HLSL_Info hlslInfo;
-    hlslInfo.hlslSource = context->translated_source;
+    hlslInfo.source = context->translated_source;
     hlslInfo.entrypoint = context->cleansed_entrypoint;
-    hlslInfo.includeDir = NULL;
+    hlslInfo.include_dir = NULL;
     hlslInfo.defines = NULL;
-    hlslInfo.numDefines = 0;
-    hlslInfo.shaderStage = info->shaderStage;
-    hlslInfo.enableDebug = info->enableDebug;
+    hlslInfo.num_defines = 0;
+    hlslInfo.shader_stage = info->shader_stage;
+    hlslInfo.enable_debug = info->enable_debug;
     hlslInfo.name = info->name;
     hlslInfo.props = 0;
 
@@ -2151,9 +2151,9 @@ void *SDL_ShaderCross_CompileDXILFromSPIRV(
     SPIRVTranspileContext *context = SDL_ShaderCross_INTERNAL_TranspileFromSPIRV(
         SPVC_BACKEND_HLSL,
         60,
-        info->shaderStage,
+        info->shader_stage,
         info->bytecode,
-        info->bytecodeSize,
+        info->bytecode_size,
         info->entrypoint);
 
     if (context == NULL) {
@@ -2161,13 +2161,13 @@ void *SDL_ShaderCross_CompileDXILFromSPIRV(
     }
 
     SDL_ShaderCross_HLSL_Info hlslInfo;
-    hlslInfo.hlslSource = context->translated_source;
+    hlslInfo.source = context->translated_source;
     hlslInfo.entrypoint = context->cleansed_entrypoint;
-    hlslInfo.includeDir = NULL;
+    hlslInfo.include_dir = NULL;
     hlslInfo.defines = NULL;
-    hlslInfo.numDefines = 0;
-    hlslInfo.shaderStage = info->shaderStage;
-    hlslInfo.enableDebug = info->enableDebug;
+    hlslInfo.num_defines = 0;
+    hlslInfo.shader_stage = info->shader_stage;
+    hlslInfo.enable_debug = info->enable_debug;
     hlslInfo.name = info->name;
     hlslInfo.props = 0;
 
@@ -2189,45 +2189,45 @@ static void *SDL_ShaderCross_INTERNAL_CreateShaderFromSPIRV(
     SDL_GPUShaderFormat shader_formats = SDL_GetGPUShaderFormats(device);
 
     if (shader_formats & SDL_GPU_SHADERFORMAT_SPIRV) {
-        if (info->shaderStage == SDL_SHADERCROSS_SHADERSTAGE_COMPUTE) {
+        if (info->shader_stage == SDL_SHADERCROSS_SHADERSTAGE_COMPUTE) {
             SDL_GPUComputePipelineCreateInfo createInfo;
             SDL_ShaderCross_ComputePipelineMetadata *pipelineMetadata = (SDL_ShaderCross_ComputePipelineMetadata *)metadata;
             SDL_ShaderCross_ReflectComputeSPIRV(
                 info->bytecode,
-                info->bytecodeSize,
+                info->bytecode_size,
                 pipelineMetadata);
             createInfo.code = info->bytecode;
-            createInfo.code_size = info->bytecodeSize;
+            createInfo.code_size = info->bytecode_size;
             createInfo.entrypoint = info->entrypoint;
             createInfo.format = SDL_GPU_SHADERFORMAT_SPIRV;
             createInfo.props = 0;
-            createInfo.num_samplers = pipelineMetadata->numSamplers;
-            createInfo.num_readonly_storage_textures = pipelineMetadata->numReadOnlyStorageTextures;
-            createInfo.num_readonly_storage_buffers = pipelineMetadata->numReadOnlyStorageBuffers;
-            createInfo.num_readwrite_storage_textures = pipelineMetadata->numReadWriteStorageTextures;
-            createInfo.num_readwrite_storage_buffers = pipelineMetadata->numReadWriteStorageBuffers;
-            createInfo.num_uniform_buffers = pipelineMetadata->numUniformBuffers;
-            createInfo.threadcount_x = pipelineMetadata->threadCountX;
-            createInfo.threadcount_y = pipelineMetadata->threadCountY;
-            createInfo.threadcount_z = pipelineMetadata->threadCountZ;
+            createInfo.num_samplers = pipelineMetadata->num_samplers;
+            createInfo.num_readonly_storage_textures = pipelineMetadata->num_readonly_storage_textures;
+            createInfo.num_readonly_storage_buffers = pipelineMetadata->num_readonly_storage_buffers;
+            createInfo.num_readwrite_storage_textures = pipelineMetadata->num_readwrite_storage_textures;
+            createInfo.num_readwrite_storage_buffers = pipelineMetadata->num_readwrite_storage_buffers;
+            createInfo.num_uniform_buffers = pipelineMetadata->num_uniform_buffers;
+            createInfo.threadcount_x = pipelineMetadata->threadcount_x;
+            createInfo.threadcount_y = pipelineMetadata->threadcount_y;
+            createInfo.threadcount_z = pipelineMetadata->threadcount_z;
             return SDL_CreateGPUComputePipeline(device, &createInfo);
         } else {
             SDL_GPUShaderCreateInfo createInfo;
             SDL_ShaderCross_GraphicsShaderMetadata *shaderMetadata = (SDL_ShaderCross_GraphicsShaderMetadata *)metadata;
             SDL_ShaderCross_ReflectGraphicsSPIRV(
                 info->bytecode,
-                info->bytecodeSize,
+                info->bytecode_size,
                 shaderMetadata);
             createInfo.code = info->bytecode;
-            createInfo.code_size = info->bytecodeSize;
+            createInfo.code_size = info->bytecode_size;
             createInfo.entrypoint = info->entrypoint;
             createInfo.format = SDL_GPU_SHADERFORMAT_SPIRV;
-            createInfo.stage = (SDL_GPUShaderStage)info->shaderStage;
+            createInfo.stage = (SDL_GPUShaderStage)info->shader_stage;
             createInfo.props = 0;
-            createInfo.num_samplers = shaderMetadata->numSamplers;
-            createInfo.num_storage_textures = shaderMetadata->numStorageTextures;
-            createInfo.num_storage_buffers = shaderMetadata->numStorageBuffers;
-            createInfo.num_uniform_buffers = shaderMetadata->numUniformBuffers;
+            createInfo.num_samplers = shaderMetadata->num_samplers;
+            createInfo.num_storage_textures = shaderMetadata->num_storage_textures;
+            createInfo.num_storage_buffers = shaderMetadata->num_storage_buffers;
+            createInfo.num_uniform_buffers = shaderMetadata->num_uniform_buffers;
             return SDL_CreateGPUShader(device, &createInfo);
         }
     } else if (shader_formats & SDL_GPU_SHADERFORMAT_MSL) {

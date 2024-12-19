@@ -54,11 +54,11 @@ void write_graphics_reflect_json(SDL_IOStream *outputIO, SDL_ShaderCross_Graphic
 {
     SDL_IOprintf(
         outputIO,
-        "{ \"samplers\": %u, \"storageTextures\": %u, \"storageBuffers\": %u, \"uniformBuffers\": %u }\n",
-        info->numSamplers,
-        info->numStorageTextures,
-        info->numStorageBuffers,
-        info->numUniformBuffers
+        "{ \"samplers\": %u, \"storage_textures\": %u, \"storage_buffers\": %u, \"uniform_buffers\": %u }\n",
+        info->num_samplers,
+        info->num_storage_textures,
+        info->num_storage_buffers,
+        info->num_uniform_buffers
     );
 }
 
@@ -66,16 +66,16 @@ void write_compute_reflect_json(SDL_IOStream *outputIO, SDL_ShaderCross_ComputeP
 {
     SDL_IOprintf(
         outputIO,
-        "{ \"samplers\": %u, \"readOnlyStorageTextures\": %u, \"readOnlyStorageBuffers\": %u, \"readWriteStorageTextures\": %u, \"readWriteStorageBuffers\": %u, \"uniformBuffers\": %u, \"threadCountX\": %u, \"threadCountY\": %u, \"threadCountZ\": %u }\n",
-        info->numSamplers,
-        info->numReadOnlyStorageTextures,
-        info->numReadOnlyStorageBuffers,
-        info->numReadWriteStorageTextures,
-        info->numReadWriteStorageBuffers,
-        info->numUniformBuffers,
-        info->threadCountX,
-        info->threadCountY,
-        info->threadCountZ
+        "{ \"samplers\": %u, \"readonly_storage_textures\": %u, \"readonly_storage_buffers\": %u, \"readwrite_storage_textures\": %u, \"readwrite_storage_buffers\": %u, \"uniform_buffers\": %u, \"threadcount_x\": %u, \"threadcount_y\": %u, \"threadcount_z\": %u }\n",
+        info->num_samplers,
+        info->num_readonly_storage_textures,
+        info->num_readonly_storage_buffers,
+        info->num_readwrite_storage_textures,
+        info->num_readwrite_storage_buffers,
+        info->num_uniform_buffers,
+        info->threadcount_x,
+        info->threadcount_y,
+        info->threadcount_z
     );
 }
 
@@ -309,10 +309,10 @@ int main(int argc, char *argv[])
     if (spirvSource) {
         SDL_ShaderCross_SPIRV_Info spirvInfo;
         spirvInfo.bytecode = fileData;
-        spirvInfo.bytecodeSize = fileSize;
+        spirvInfo.bytecode_size = fileSize;
         spirvInfo.entrypoint = entrypointName;
-        spirvInfo.shaderStage = shaderStage;
-        spirvInfo.enableDebug = enableDebug;
+        spirvInfo.shader_stage = shaderStage;
+        spirvInfo.enable_debug = enableDebug;
         spirvInfo.name = filename;
         spirvInfo.props = 0;
 
@@ -412,13 +412,13 @@ int main(int argc, char *argv[])
         }
     } else {
         SDL_ShaderCross_HLSL_Info hlslInfo;
-        hlslInfo.hlslSource = fileData;
+        hlslInfo.source = fileData;
         hlslInfo.entrypoint = entrypointName;
-        hlslInfo.includeDir = includeDir;
+        hlslInfo.include_dir = includeDir;
         hlslInfo.defines = defines;
-        hlslInfo.numDefines = numDefines;
-        hlslInfo.shaderStage = shaderStage;
-        hlslInfo.enableDebug = enableDebug;
+        hlslInfo.num_defines = numDefines;
+        hlslInfo.shader_stage = shaderStage;
+        hlslInfo.enable_debug = enableDebug;
         hlslInfo.name = filename;
         hlslInfo.props = 0;
 
@@ -462,10 +462,10 @@ int main(int argc, char *argv[])
                 } else {
                     SDL_ShaderCross_SPIRV_Info spirvInfo;
                     spirvInfo.bytecode = spirv;
-                    spirvInfo.bytecodeSize = bytecodeSize;
+                    spirvInfo.bytecode_size = bytecodeSize;
                     spirvInfo.entrypoint = entrypointName;
-                    spirvInfo.shaderStage = shaderStage;
-                    spirvInfo.enableDebug = enableDebug;
+                    spirvInfo.shader_stage = shaderStage;
+                    spirvInfo.enable_debug = enableDebug;
                     spirvInfo.props = 0;
                     char *buffer = SDL_ShaderCross_TranspileMSLFromSPIRV(
                         &spirvInfo);
@@ -508,10 +508,10 @@ int main(int argc, char *argv[])
 
                 SDL_ShaderCross_SPIRV_Info spirvInfo;
                 spirvInfo.bytecode = spirv;
-                spirvInfo.bytecodeSize = bytecodeSize;
+                spirvInfo.bytecode_size = bytecodeSize;
                 spirvInfo.entrypoint = entrypointName;
-                spirvInfo.shaderStage = shaderStage;
-                spirvInfo.enableDebug = enableDebug;
+                spirvInfo.shader_stage = shaderStage;
+                spirvInfo.enable_debug = enableDebug;
                 spirvInfo.props = 0;
 
                 char *buffer = SDL_ShaderCross_TranspileHLSLFromSPIRV(

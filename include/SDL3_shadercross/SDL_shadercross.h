@@ -47,49 +47,49 @@ typedef enum SDL_ShaderCross_ShaderStage
 
 typedef struct SDL_ShaderCross_GraphicsShaderMetadata
 {
-    Uint32 numSamplers;         /**< The number of samplers defined in the shader. */
-    Uint32 numStorageTextures;  /**< The number of storage textures defined in the shader. */
-    Uint32 numStorageBuffers;   /**< The number of storage buffers defined in the shader. */
-    Uint32 numUniformBuffers;   /**< The number of uniform buffers defined in the shader. */
+    Uint32 num_samplers;          /**< The number of samplers defined in the shader. */
+    Uint32 num_storage_textures;  /**< The number of storage textures defined in the shader. */
+    Uint32 num_storage_buffers;   /**< The number of storage buffers defined in the shader. */
+    Uint32 num_uniform_buffers;   /**< The number of uniform buffers defined in the shader. */
 } SDL_ShaderCross_GraphicsShaderMetadata;
 
 typedef struct SDL_ShaderCross_ComputePipelineMetadata
 {
-    Uint32 numSamplers;                  /**< The number of samplers defined in the shader. */
-    Uint32 numReadOnlyStorageTextures;   /**< The number of readonly storage textures defined in the shader. */
-    Uint32 numReadOnlyStorageBuffers;    /**< The number of readonly storage buffers defined in the shader. */
-    Uint32 numReadWriteStorageTextures;  /**< The number of read-write storage textures defined in the shader. */
-    Uint32 numReadWriteStorageBuffers;   /**< The number of read-write storage buffers defined in the shader. */
-    Uint32 numUniformBuffers;            /**< The number of uniform buffers defined in the shader. */
-    Uint32 threadCountX;                 /**< The number of threads in the X dimension. */
-    Uint32 threadCountY;                 /**< The number of threads in the Y dimension. */
-    Uint32 threadCountZ;                 /**< The number of threads in the Z dimension. */
+    Uint32 num_samplers;                    /**< The number of samplers defined in the shader. */
+    Uint32 num_readonly_storage_textures;   /**< The number of readonly storage textures defined in the shader. */
+    Uint32 num_readonly_storage_buffers;    /**< The number of readonly storage buffers defined in the shader. */
+    Uint32 num_readwrite_storage_textures;  /**< The number of read-write storage textures defined in the shader. */
+    Uint32 num_readwrite_storage_buffers;   /**< The number of read-write storage buffers defined in the shader. */
+    Uint32 num_uniform_buffers;             /**< The number of uniform buffers defined in the shader. */
+    Uint32 threadcount_x;                   /**< The number of threads in the X dimension. */
+    Uint32 threadcount_y;                   /**< The number of threads in the Y dimension. */
+    Uint32 threadcount_z;                   /**< The number of threads in the Z dimension. */
 } SDL_ShaderCross_ComputePipelineMetadata;
 
 typedef struct SDL_ShaderCross_SPIRV_Info
 {
-    const Uint8 *bytecode;                    /**< The SPIRV bytecode. */
-    size_t bytecodeSize;                      /**< The length of the SPIRV bytecode. */
-    const char *entrypoint;                   /**< The entry point function name for the shader in UTF-8. */
-    SDL_ShaderCross_ShaderStage shaderStage;  /**< The shader stage to transpile the shader with. */
-    bool enableDebug;                         /**< Allows debug info to be emitted when relevant. Can be useful for graphics debuggers like RenderDoc. */
-    const char *name;                         /**< A UTF-8 name to associate with the shader. Optional, can be NULL. */
+    const Uint8 *bytecode;                     /**< The SPIRV bytecode. */
+    size_t bytecode_size;                      /**< The length of the SPIRV bytecode. */
+    const char *entrypoint;                    /**< The entry point function name for the shader in UTF-8. */
+    SDL_ShaderCross_ShaderStage shader_stage;  /**< The shader stage to transpile the shader with. */
+    bool enable_debug;                         /**< Allows debug info to be emitted when relevant. Can be useful for graphics debuggers like RenderDoc. */
+    const char *name;                          /**< A UTF-8 name to associate with the shader. Optional, can be NULL. */
 
-    SDL_PropertiesID props;                   /**< A properties ID for extensions. Should be 0 if no extensions are needed. */
+    SDL_PropertiesID props;                    /**< A properties ID for extensions. Should be 0 if no extensions are needed. */
 } SDL_ShaderCross_SPIRV_Info;
 
 typedef struct SDL_ShaderCross_HLSL_Info
 {
-    const char *hlslSource;                   /**< The HLSL source code for the shader. */
-    const char *entrypoint;                   /**< The entry point function name for the shader in UTF-8. */
-    const char *includeDir;                   /**< The include directory for shader code. Optional, can be NULL. */
-    char **defines;                           /**< An array of define strings. Optional, can be NULL. */
-    Uint32 numDefines;                        /**< The number of strings in the defines array. */
-    SDL_ShaderCross_ShaderStage shaderStage;  /**< The shader stage to compile the shader with. */
-    bool enableDebug;                         /**< Allows debug info to be emitted when relevant. Can be useful for graphics debuggers like RenderDoc. */
-    const char *name;                         /**< A UTF-8 name to associate with the shader. Optional, can be NULL. */
+    const char *source;                        /**< The HLSL source code for the shader. */
+    const char *entrypoint;                    /**< The entry point function name for the shader in UTF-8. */
+    const char *include_dir;                   /**< The include directory for shader code. Optional, can be NULL. */
+    char **defines;                            /**< An array of define strings. Optional, can be NULL. */
+    Uint32 num_defines;                        /**< The number of strings in the defines array. */
+    SDL_ShaderCross_ShaderStage shader_stage;  /**< The shader stage to compile the shader with. */
+    bool enable_debug;                         /**< Allows debug info to be emitted when relevant. Can be useful for graphics debuggers like RenderDoc. */
+    const char *name;                          /**< A UTF-8 name to associate with the shader. Optional, can be NULL. */
 
-    SDL_PropertiesID props;                   /**< A properties ID for extensions. Should be 0 if no extensions are needed. */
+    SDL_PropertiesID props;                    /**< A properties ID for extensions. Should be 0 if no extensions are needed. */
 } SDL_ShaderCross_HLSL_Info;
 
 /**
@@ -194,28 +194,28 @@ extern SDL_DECLSPEC SDL_GPUComputePipeline * SDLCALL SDL_ShaderCross_CompileComp
  * Reflect graphics shader info from SPIRV code.
  *
  * \param bytecode the SPIRV bytecode.
- * \param bytecodeSize the length of the SPIRV bytecode.
+ * \param bytecode_size the length of the SPIRV bytecode.
  * \param metadata a pointer filled in with shader metadata.
  *
  * \threadsafety It is safe to call this function from any thread.
  */
 extern SDL_DECLSPEC bool SDLCALL SDL_ShaderCross_ReflectGraphicsSPIRV(
     const Uint8 *bytecode,
-    size_t bytecodeSize,
+    size_t bytecode_size,
     SDL_ShaderCross_GraphicsShaderMetadata *metadata);
 
 /**
  * Reflect compute pipeline info from SPIRV code.
  *
  * \param bytecode the SPIRV bytecode.
- * \param bytecodeSize the length of the SPIRV bytecode.
+ * \param bytecode_size the length of the SPIRV bytecode.
  * \param metadata a pointer filled in with compute pipeline metadata.
  *
  * \threadsafety It is safe to call this function from any thread.
  */
 extern SDL_DECLSPEC bool SDLCALL SDL_ShaderCross_ReflectComputeSPIRV(
     const Uint8 *bytecode,
-    size_t bytecodeSize,
+    size_t bytecode_size,
     SDL_ShaderCross_ComputePipelineMetadata *metadata);
 
 /**
