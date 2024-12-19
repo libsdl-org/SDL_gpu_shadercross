@@ -409,11 +409,13 @@ static void *SDL_ShaderCross_INTERNAL_CompileUsingDXC(
         return NULL;
     }
 
-    for (Uint32 i = 0; i < MAX_DEFINES; i += 1) {
-        if (info->defines[i].name == NULL) {
-            break;
+    if (info->defines != NULL) {
+        for (Uint32 i = 0; i < MAX_DEFINES; i += 1) {
+            if (info->defines[i].name == NULL) {
+                break;
+            }
+            numDefineStrings += 1;
         }
-        numDefineStrings += 1;
     }
 
     char defineString[MAX_DEFINE_STRING_LENGTH];
