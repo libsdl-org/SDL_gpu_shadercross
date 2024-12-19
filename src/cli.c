@@ -44,9 +44,11 @@ void print_help(void)
     SDL_Log("  %-*s %s", column_width, "-t | --stage <value>", "Shader stage. May be inferred from the filename. Values: [vertex, fragment, compute]");
     SDL_Log("  %-*s %s", column_width, "-e | --entrypoint <value>", "Entrypoint function name. Default: \"main\".");
     SDL_Log("  %-*s %s", column_width, "-o | --output <value>", "Output file.");
+    SDL_Log("\n");
     SDL_Log("Optional options:\n");
     SDL_Log("  %-*s %s", column_width, "-I | --include <value>", "HLSL include directory. Only used with HLSL source.");
-    SDL_Log("  %-*s %s", column_width, "-D<value>", "HLSL define. Only used with HLSL source. Can be repeated.");
+    SDL_Log("  %-*s %s", column_width, "-D<name>[=<value>]", "HLSL define. Only used with HLSL source. Can be repeated.");
+    SDL_Log("  %-*s %s", column_width, "", "If =<value> is omitted the define will be treated as equal to 1.");
     SDL_Log("  %-*s %s", column_width, "-g | --debug", "Generate debug information when possible.");
 }
 
@@ -97,8 +99,8 @@ int main(int argc, char *argv[])
     void *fileData = NULL;
     bool accept_optionals = true;
 
-    Uint32 numDefines = 0;
-    char **defines = NULL;
+    SDL_ShaderCross_HLSL_Define *defines = NULL;
+    size_t numDefines = 0;
 
     bool enableDebug = false;
 
@@ -207,10 +209,21 @@ int main(int argc, char *argv[])
                 }
                 i += 1;
                 outputFilename = argv[i];
-            } else if (strncmp(argv[i], "-D", strlen("-D")) == 0) {
+            } else if (SDL_strncmp(argv[i], "-D", SDL_strlen("-D")) == 0) {
                 numDefines += 1;
-                defines = SDL_realloc(defines, sizeof(char *) * numDefines);
-                defines[numDefines - 1] = argv[i];
+                defines = SDL_realloc(defines, sizeof(SDL_ShaderCross_HLSL_Define) * numDefines);
+                char *equalSign = SDL_strchr(argv[i], '=');
+                if (equalSign != NULL) {
+                    defines[numDefines - 1].value = equalSign + 1;
+                    size_t len = defines[numDefines - 1].value - argv[i] - 2;
+                    defines[numDefines - 1].name = SDL_malloc(len);
+                    SDL_utf8strlcpy(defines[numDefines - 1].name, (const char *)argv[i] + 2, len);
+                } else { // no '=' was found
+                    defines[numDefines - 1].value = NULL;
+                    size_t len = SDL_utf8strlen(argv[i]) + 1 - 2;
+                    defines[numDefines - 1].name = SDL_malloc(len);
+                    SDL_utf8strlcpy(defines[numDefines - 1].name, (const char *)argv[i] + 2, len);
+                }
             } else if (SDL_strcmp(argv[i], "-g") == 0 || SDL_strcmp(arg, "--debug") == 0) {
                 enableDebug = true;
             } else if (SDL_strcmp(arg, "--") == 0) {
@@ -305,6 +318,13 @@ int main(int argc, char *argv[])
 
     size_t bytecodeSize;
     int result = 0;
+
+    // null-terminate the defines array
+    if (defines != NULL) {
+        defines = SDL_realloc(defines, sizeof(SDL_ShaderCross_HLSL_Define) * (numDefines + 1));
+        defines[numDefines].name = NULL;
+        defines[numDefines].value = NULL;
+    }
 
     if (spirvSource) {
         SDL_ShaderCross_SPIRV_Info spirvInfo;
@@ -416,7 +436,6 @@ int main(int argc, char *argv[])
         hlslInfo.entrypoint = entrypointName;
         hlslInfo.include_dir = includeDir;
         hlslInfo.defines = defines;
-        hlslInfo.num_defines = numDefines;
         hlslInfo.shader_stage = shaderStage;
         hlslInfo.enable_debug = enableDebug;
         hlslInfo.name = filename;
@@ -583,6 +602,9 @@ int main(int argc, char *argv[])
 
     SDL_CloseIO(outputIO);
     SDL_free(fileData);
+    for (Uint32 i = 0; i < numDefines; i += 1) {
+        SDL_free(defines[i].name);
+    }
     SDL_free(defines);
     SDL_ShaderCross_Quit();
     return result;

@@ -23,6 +23,10 @@
 #include <SDL3/SDL_loadso.h>
 #include <SDL3/SDL_log.h>
 
+/* Constants */
+#define MAX_DEFINES 64
+#define MAX_DEFINE_STRING_LENGTH 256
+
 /* Win32 Type Definitions */
 
 typedef int HRESULT;
@@ -343,6 +347,8 @@ static void *SDL_ShaderCross_INTERNAL_CompileUsingDXC(
     size_t includeDirLength = 0;
     wchar_t *includeDirUtf16 = NULL;
     wchar_t *nameUtf16 = NULL;
+    wchar_t **defineStringsUtf16 = NULL;
+    size_t numDefineStrings = 0;
     HRESULT ret;
 
     /* Non-static DxcInstance, since the functions we call on it are not thread-safe */
@@ -403,18 +409,30 @@ static void *SDL_ShaderCross_INTERNAL_CompileUsingDXC(
         return NULL;
     }
 
-    LPCWSTR *args = SDL_malloc(sizeof(LPCWSTR) * (info->num_defines + 10));
+    for (Uint32 i = 0; i < MAX_DEFINES; i += 1) {
+        if (info->defines[i].name == NULL) {
+            break;
+        }
+        numDefineStrings += 1;
+    }
+
+    char defineString[MAX_DEFINE_STRING_LENGTH];
+    defineStringsUtf16 = SDL_malloc(sizeof(LPCWSTR) * numDefineStrings);
+    for (Uint32 i = 0; i < numDefineStrings; i += 1) {
+        if (info->defines[i].value == NULL) {
+            SDL_snprintf(defineString, MAX_DEFINE_STRING_LENGTH, "-D%s=%s", info->defines[i].name, "1");
+        } else {
+            SDL_snprintf(defineString, MAX_DEFINE_STRING_LENGTH, "-D%s=%s", info->defines[i].name, info->defines[i].value);
+        }
+
+        defineStringsUtf16[i] = (wchar_t *)SDL_iconv_string("WCHAR_T", "UTF-8", defineString, MAX_DEFINE_STRING_LENGTH);
+    }
+
+    LPCWSTR *args = SDL_malloc(sizeof(LPCWSTR) * (numDefineStrings + 10));
     Uint32 argCount = 0;
 
-    for (Uint32 i = 0; i < info->num_defines; i += 1) {
-        args[argCount++] = (wchar_t *)SDL_iconv_string("WCHAR_T", "UTF-8", info->defines[i], SDL_utf8strlen(info->defines[i]) + 1);
-        if (args[argCount - 1] == NULL) {
-            SDL_SetError("%s", "Failed to convert define argument to WCHAR_T!");
-            SDL_free(args);
-            dxcInstance->lpVtbl->Release(dxcInstance);
-            utils->lpVtbl->Release(utils);
-            return NULL;
-        }
+    for (Uint32 i = 0; i < numDefineStrings; i += 1) {
+        args[argCount++] = defineStringsUtf16[i];
     }
 
     args[argCount++] = (LPCWSTR)L"-E";
@@ -544,8 +562,8 @@ static void *SDL_ShaderCross_INTERNAL_CompileUsingDXC(
     dxcInstance->lpVtbl->Release(dxcInstance);
     utils->lpVtbl->Release(utils);
 
-    for (Uint32 i = 0; i < info->num_defines; i += 1) {
-        SDL_free(args[i]);
+    for (Uint32 i = 0; i < numDefineStrings; i += 1) {
+        SDL_free(defineStringsUtf16[i]);
     }
     SDL_free(args);
 
@@ -1986,7 +2004,6 @@ static void *SDL_ShaderCross_INTERNAL_CompileFromSPIRV(
         hlslInfo.entrypoint = transpileContext->cleansed_entrypoint;
         hlslInfo.include_dir = NULL;
         hlslInfo.defines = NULL;
-        hlslInfo.num_defines = 0;
         hlslInfo.enable_debug = info->enable_debug;
         hlslInfo.shader_stage = SDL_SHADERCROSS_SHADERSTAGE_COMPUTE;
         hlslInfo.name = info->name;
@@ -2028,7 +2045,6 @@ static void *SDL_ShaderCross_INTERNAL_CompileFromSPIRV(
         hlslInfo.entrypoint = transpileContext->cleansed_entrypoint;
         hlslInfo.include_dir = NULL;
         hlslInfo.defines = NULL;
-        hlslInfo.num_defines = 0;
         hlslInfo.enable_debug = info->enable_debug;
         hlslInfo.shader_stage = info->shader_stage;
         hlslInfo.name = info->name;
@@ -2124,7 +2140,6 @@ void *SDL_ShaderCross_CompileDXBCFromSPIRV(
     hlslInfo.entrypoint = context->cleansed_entrypoint;
     hlslInfo.include_dir = NULL;
     hlslInfo.defines = NULL;
-    hlslInfo.num_defines = 0;
     hlslInfo.shader_stage = info->shader_stage;
     hlslInfo.enable_debug = info->enable_debug;
     hlslInfo.name = info->name;
@@ -2165,7 +2180,6 @@ void *SDL_ShaderCross_CompileDXILFromSPIRV(
     hlslInfo.entrypoint = context->cleansed_entrypoint;
     hlslInfo.include_dir = NULL;
     hlslInfo.defines = NULL;
-    hlslInfo.num_defines = 0;
     hlslInfo.shader_stage = info->shader_stage;
     hlslInfo.enable_debug = info->enable_debug;
     hlslInfo.name = info->name;
