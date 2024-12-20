@@ -49,18 +49,6 @@ typedef void IDxcBlobEncoding;   /* hack, unused */
 typedef void IDxcBlobWide;       /* hack, unused */
 typedef void IDxcIncludeHandler; /* hack, unused */
 
-/* Dynamic Library / Linking */
-#ifdef DXCOMPILER_DLL
-#undef DXCOMPILER_DLL
-#endif
-#if defined(_GAMING_XBOX_SCARLETT)
-#define DXCOMPILER_DLL "dxcompiler_xs.dll"
-#elif defined(_GAMING_XBOX_XBOXONE)
-#define DXCOMPILER_DLL "dxcompiler_x.dll"
-#else
-#define DXCOMPILER_DLL "dxcompiler.dll"
-#endif
-
 /* Unlike vkd3d-utils, libdxcompiler.so does not use msabi */
 #if !defined(_WIN32)
 #define __stdcall
@@ -320,14 +308,9 @@ struct IDxcUtils
 
 /* DXCompiler */
 #if defined(SDL_PLATFORM_XBOXONE) || defined(SDL_PLATFORM_XBOXSERIES)
-static SDL_SharedObject *dxcompiler_dll = NULL;
-static DxcCreateInstanceProc SDL_DxcCreateInstance = NULL;
-typedef HRESULT(__stdcall *DxcCreateInstanceProc)(
-    REFCLSID rclsid,
-    REFIID riid,
-    LPVOID *ppv);
+extern HRESULT __stdcall DxcCreateInstance(REFCLSID rclsid, REFIID riid, LPVOID* ppv);
 #else
-HRESULT DxcCreateInstance(REFCLSID rclsid, REFIID riid, LPVOID *ppv);
+extern HRESULT DxcCreateInstance(REFCLSID rclsid, REFIID riid, LPVOID *ppv);
 #endif
 
 #endif /* SDL_SHADERCROSS_DXC */
@@ -356,21 +339,6 @@ static void *SDL_ShaderCross_INTERNAL_CompileUsingDXC(
     IDxcUtils *utils = NULL;
     IDxcIncludeHandler *includeHandler = NULL;
 
-    #if defined(SDL_PLATFORM_XBOXONE) || defined(SDL_PLATFORM_XBOXSERIES)
-    if (SDL_DxcCreateInstance == NULL) {
-        SDL_SetError("%s", "DxcCreateInstance function not loaded. Did you forget to call Init?");
-        return NULL;
-    }
-    SDL_DxcCreateInstance(
-        &CLSID_DxcCompiler,
-        IID_IDxcCompiler3,
-        (void **)&dxcInstance);
-
-    SDL_DxcCreateInstance(
-        &CLSID_DxcUtils,
-        &IID_IDxcUtils,
-        (void **)(&utils));
-    #else
     DxcCreateInstance(
         &CLSID_DxcCompiler,
         IID_IDxcCompiler3,
@@ -380,7 +348,6 @@ static void *SDL_ShaderCross_INTERNAL_CompileUsingDXC(
         &CLSID_DxcUtils,
         &IID_IDxcUtils,
         (void **)(&utils));
-    #endif
 
     if (dxcInstance == NULL) {
         SDL_SetError("%s", "Could not create DXC instance!");
@@ -2294,18 +2261,6 @@ SDL_GPUComputePipeline *SDL_ShaderCross_CompileComputePipelineFromSPIRV(
 
 bool SDL_ShaderCross_Init(void)
 {
-    #if defined(SDL_PLATFORM_XBOXONE) || defined(SDL_PLATFORM_XBOXSERIES)
-    dxcompiler_dll = SDL_LoadObject(DXCOMPILER_DLL);
-    if (dxcompiler_dll != NULL) {
-        SDL_DxcCreateInstance = (DxcCreateInstanceProc)SDL_LoadFunction(dxcompiler_dll, "DxcCreateInstance");
-
-        if (SDL_DxcCreateInstance == NULL) {
-            SDL_UnloadObject(dxcompiler_dll);
-            dxcompiler_dll = NULL;
-        }
-    }
-    #endif
-
     d3dcompiler_dll = SDL_LoadObject(D3DCOMPILER_DLL);
 
     if (d3dcompiler_dll != NULL) {
@@ -2328,15 +2283,6 @@ void SDL_ShaderCross_Quit(void)
 
         SDL_D3DCompile = NULL;
     }
-
-    #if defined(SDL_PLATFORM_XBOXONE) || defined(SDL_PLATFORM_XBOXSERIES)
-    if (dxcompiler_dll != NULL) {
-        SDL_UnloadObject(dxcompiler_dll);
-        dxcompiler_dll = NULL;
-
-        SDL_DxcCreateInstance = NULL;
-    }
-    #endif
 }
 
 SDL_GPUShaderFormat SDL_ShaderCross_GetSPIRVShaderFormats(void)
