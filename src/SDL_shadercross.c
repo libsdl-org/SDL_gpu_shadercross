@@ -559,6 +559,9 @@ void *SDL_ShaderCross_CompileDXILFromHLSL(
     const SDL_ShaderCross_HLSL_Info *info,
     size_t *size)
 {
+#if SDL_PLATFORM_GDK
+    return SDL_ShaderCross_INTERNAL_CompileUsingDXC(info, false, size);
+#else
     // Roundtrip to SPIR-V to support things like Structured Buffers.
     size_t spirvSize;
     void *spirv = SDL_ShaderCross_CompileSPIRVFromHLSL(
@@ -594,6 +597,7 @@ void *SDL_ShaderCross_CompileDXILFromHLSL(
         &translatedHlslInfo,
         false,
         size);
+#endif
 }
 
 void *SDL_ShaderCross_CompileSPIRVFromHLSL(
