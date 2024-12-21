@@ -492,6 +492,36 @@ static void *SDL_ShaderCross_INTERNAL_CompileUsingDXC(
         return NULL;
     }
 
+    ret = dxcResult->lpVtbl->GetOutput(dxcResult,
+                                       DXC_OUT_OBJECT,
+                                       IID_IDxcBlob,
+                                       (void **)&blob,
+                                       NULL);
+    if (ret < 0) {
+        // Compilation failed, display errors
+        dxcResult->lpVtbl->GetOutput(
+            dxcResult,
+            DXC_OUT_ERRORS,
+            IID_IDxcBlobUtf8,
+            (void **)&errors,
+            NULL);
+
+        if (errors != NULL && errors->lpVtbl->GetBufferSize(errors) != 0) {
+            SDL_SetError(
+            "HLSL compilation failed: %s",
+                (char *)errors->lpVtbl->GetBufferPointer(errors));
+        } else {
+            SDL_SetError("%s", "Compilation failed with unknown error");
+        }
+
+        // teardown
+        dxcResult->lpVtbl->Release(dxcResult);
+        dxcInstance->lpVtbl->Release(dxcInstance);
+        utils->lpVtbl->Release(utils);
+        return NULL;
+    }
+
+    // If compilation succeeded, but there are errors, those are warnings
     dxcResult->lpVtbl->GetOutput(
         dxcResult,
         DXC_OUT_ERRORS,
@@ -500,26 +530,8 @@ static void *SDL_ShaderCross_INTERNAL_CompileUsingDXC(
         NULL);
 
     if (errors != NULL && errors->lpVtbl->GetBufferSize(errors) != 0) {
-        SDL_SetError(
-           "HLSL compilation failed: %s",
+        SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION, "HLSL compiled with warnings: %s",
             (char *)errors->lpVtbl->GetBufferPointer(errors));
-        dxcResult->lpVtbl->Release(dxcResult);
-        dxcInstance->lpVtbl->Release(dxcInstance);
-        utils->lpVtbl->Release(utils);
-        return NULL;
-    }
-
-    ret = dxcResult->lpVtbl->GetOutput(dxcResult,
-                                       DXC_OUT_OBJECT,
-                                       IID_IDxcBlob,
-                                       (void **)&blob,
-                                       NULL);
-    if (ret < 0) {
-        SDL_SetError("%s", "IDxcBlob fetch failed");
-        dxcResult->lpVtbl->Release(dxcResult);
-        dxcInstance->lpVtbl->Release(dxcInstance);
-        utils->lpVtbl->Release(utils);
-        return NULL;
     }
 
     *size = blob->lpVtbl->GetBufferSize(blob);
